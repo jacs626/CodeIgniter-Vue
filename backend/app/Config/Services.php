@@ -19,14 +19,17 @@ use CodeIgniter\Config\BaseService;
  */
 class Services extends BaseService
 {
-    /*
-     * public static function example($getShared = true)
-     * {
-     *     if ($getShared) {
-     *         return static::getSharedInstance('example');
-     *     }
-     *
-     *     return new \CodeIgniter\Example();
-     * }
-     */
+    public static function productoService($getShared = true)
+    {
+        $servicePath = dirname(APPPATH, 1) . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'Services' . DIRECTORY_SEPARATOR . 'ProductosService.php';
+        if (file_exists($servicePath)) {
+            require_once $servicePath;
+        }
+        
+        if ($getShared) {
+            return static::getSharedInstance('productoService');
+        }
+
+        return new \App\Services\ProductosService();
+    }
 }

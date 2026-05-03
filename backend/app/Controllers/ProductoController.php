@@ -2,29 +2,28 @@
 
 namespace App\Controllers;
 
-use App\Models\ProductoModel;
 use CodeIgniter\RESTful\ResourceController;
 
 class ProductoController extends ResourceController
 {
+    protected $service;
+
+    public function __construct()
+    {
+        $this->service = service('productoService');
+    }
+
     public function index()
     {
-        $model = new ProductoModel();
-        $productos = $model->findAll();
-
+        $productos = $this->service->obtenerTodos();
         return $this->respond($productos);
     }
 
     public function create()
     {
-        $model = new \App\Models\ProductoModel();
-
         $data = $this->request->getJSON(true);
 
-        $model->insert($data);
-        if (!$data) {
-            return $this->fail("Datos inválidos");
-        }
+        $this->service->crear($data);
 
         return $this->respondCreated([
             "message" => "Producto creado"
@@ -33,15 +32,13 @@ class ProductoController extends ResourceController
 
     public function update($id = null)
     {
-        $model = new \App\Models\ProductoModel();
-
         $data = $this->request->getJSON(true);
 
-        if (!$model->find($id)) {
+        $result = $this->service->actualizar($id, $data);
+
+        if (!$result) {
             return $this->failNotFound("Producto no encontrado");
         }
-
-        $model->update($id, $data);
 
         return $this->respond([
             "message" => "Producto actualizado"
@@ -50,13 +47,11 @@ class ProductoController extends ResourceController
 
     public function delete($id = null)
     {
-        $model = new \App\Models\ProductoModel();
+        $result = $this->service->eliminar($id);
 
-        if (!$model->find($id)) {
+        if (!$result) {
             return $this->failNotFound("Producto no encontrado");
         }
-
-        $model->delete($id);
 
         return $this->respond([
             "message" => "Producto eliminado"
