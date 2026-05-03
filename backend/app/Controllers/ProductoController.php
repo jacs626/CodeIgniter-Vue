@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Validation\ProductoValidation;
 use CodeIgniter\RESTful\ResourceController;
 
 class ProductoController extends ResourceController
@@ -22,6 +23,11 @@ class ProductoController extends ResourceController
     public function create()
     {
         $data = $this->request->getJSON(true);
+        $rules = ProductoValidation::rules();
+
+        if (!$this->validateData($data, $rules)) {
+            return $this->failValidationErrors($this->validator->getErrors());
+        }
 
         $this->service->crear($data);
 
@@ -33,6 +39,11 @@ class ProductoController extends ResourceController
     public function update($id = null)
     {
         $data = $this->request->getJSON(true);
+        $rules = ProductoValidation::rules();
+
+        if (!$this->validateData($data, $rules)) {
+            return $this->failValidationErrors($this->validator->getErrors());
+        }
 
         $result = $this->service->actualizar($id, $data);
 

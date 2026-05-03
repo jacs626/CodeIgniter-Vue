@@ -8,7 +8,7 @@ class ProductosService
 
     public function __construct()
     {
-        require_once dirname(APPPATH, 1) . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'Models' . DIRECTORY_SEPARATOR . 'ProductoModel.php';
+        require_once dirname(FCPATH) . '/app/Models/ProductoModel.php';
         $this->model = new \App\Models\ProductoModel();
     }
 
