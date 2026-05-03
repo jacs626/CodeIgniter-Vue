@@ -2,27 +2,64 @@
 
 namespace App\Controllers;
 
+use App\Models\ProductoModel;
 use CodeIgniter\RESTful\ResourceController;
 
 class ProductoController extends ResourceController
 {
     public function index()
     {
-        $productos = [
-            [
-                "id" => 1,
-                "nombre" => "Teclado",
-                "precio_actual" => 20000,
-                "precio_objetivo" => 15000
-            ],
-            [
-                "id" => 2,
-                "nombre" => "Mouse",
-                "precio_actual" => 10000,
-                "precio_objetivo" => 8000
-            ]
-        ];
+        $model = new ProductoModel();
+        $productos = $model->findAll();
 
         return $this->respond($productos);
+    }
+
+    public function create()
+    {
+        $model = new \App\Models\ProductoModel();
+
+        $data = $this->request->getJSON(true);
+
+        $model->insert($data);
+        if (!$data) {
+            return $this->fail("Datos inválidos");
+        }
+
+        return $this->respondCreated([
+            "message" => "Producto creado"
+        ]);
+    }
+
+    public function update($id = null)
+    {
+        $model = new \App\Models\ProductoModel();
+
+        $data = $this->request->getJSON(true);
+
+        if (!$model->find($id)) {
+            return $this->failNotFound("Producto no encontrado");
+        }
+
+        $model->update($id, $data);
+
+        return $this->respond([
+            "message" => "Producto actualizado"
+        ]);
+    }
+
+    public function delete($id = null)
+    {
+        $model = new \App\Models\ProductoModel();
+
+        if (!$model->find($id)) {
+            return $this->failNotFound("Producto no encontrado");
+        }
+
+        $model->delete($id);
+
+        return $this->respond([
+            "message" => "Producto eliminado"
+        ]);
     }
 }
