@@ -37,19 +37,13 @@ npm run dev
 
 ## 🏗️ Arquitectura general
 
-HTTP Request
-↓
-Controller
-↓
-Service (lógica de negocio)
-↓
-Model (acceso a datos)
-↓
-Entity (reglas de dominio)
-↓
-Transformer (formato API)
-↓
-JSON Response
+1. HTTP Request
+2. Controller
+3. Service (lógica de negocio)
+4. Model (acceso a datos)
+5. Entity (reglas de dominio)
+6. Transformer (formato API)
+7. JSON Response
 
 ---
 
