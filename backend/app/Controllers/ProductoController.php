@@ -19,14 +19,23 @@ class ProductoController extends ResourceController
     public function index()
     {
         $q = $this->request->getGet('q');
-        $productos = $this->service->obtenerTodos($q);
+        $page = (int) $this->request->getGet('page') ?: 1;
+        $perPage = 10;
 
-        $data = $this->transformer->transformCollection($productos);
+        $result = $this->service->obtenerTodos($q, $page, $perPage);
+
+        $productos = $this->transformer->transformCollection($result['data']);
 
         return $this->respond([
             "status" => "success",
             "message" => "Lista de productos",
-            "data" => $data
+            "data" => $productos,
+            "meta" => [
+                "currentPage" => $result['pagination']['currentPage'],
+                "perPage" => $result['pagination']['perPage'],
+                "total" => $result['pagination']['total'],
+                "lastPage" => $result['pagination']['lastPage']
+            ]
         ], 200);
     }
 

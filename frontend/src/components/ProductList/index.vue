@@ -8,6 +8,8 @@ const props = defineProps<{
   productos: Producto[];
   searchQuery: string;
   onlyOffers?: boolean;
+  currentPage?: number;
+  totalPages?: number;
 }>();
 
 const emit = defineEmits<{
@@ -15,6 +17,7 @@ const emit = defineEmits<{
   (e: 'eliminar', id: number): void;
   (e: 'update:searchQuery', value: string): void;
   (e: 'update:onlyOffers', value: boolean): void;
+  (e: 'changePage', page: number): void;
 }>();
 
 const filteredProducts = computed(() => {
@@ -57,6 +60,21 @@ const filteredProducts = computed(() => {
         @editar="emit('editar', $event)" 
         @eliminar="emit('eliminar', $event)" 
       />
+    </div>
+    <div v-if="totalPages && totalPages > 1" class="pagination">
+      <button 
+        :disabled="currentPage === 1" 
+        @click="emit('changePage', currentPage! - 1)"
+      >
+        Anterior
+      </button>
+      <span>Página {{ currentPage }} de {{ totalPages }}</span>
+      <button 
+        :disabled="currentPage === totalPages" 
+        @click="emit('changePage', currentPage! + 1)"
+      >
+        Siguiente
+      </button>
     </div>
   </section>
 </template>

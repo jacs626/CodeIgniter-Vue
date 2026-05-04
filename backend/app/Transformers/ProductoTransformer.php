@@ -6,14 +6,14 @@ use App\Entities\ProductoEntity;
 
 class ProductoTransformer
 {
-    public function transform(ProductoEntity $producto): array
+    public function transform($producto): array
     {
         return [
             'id'            => $producto->id,
             'nombre'        => $producto->nombre,
             'precio_actual' => $producto->precio_actual,
             'precio_objetivo'=> $producto->precio_objetivo,
-            'en_oferta'     => $producto->getEnOferta(),
+            'en_oferta'     => method_exists($producto, 'getEnOferta') ? $producto->getEnOferta() : ($producto->precio_actual < $producto->precio_objetivo),
         ];
     }
 

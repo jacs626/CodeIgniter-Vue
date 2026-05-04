@@ -11,12 +11,41 @@ class ProductosService
         $this->model = model('ProductoModel');
     }
 
-    public function obtenerTodos(?string $q = null)
+    public function obtenerTodos(?string $q = null, int $page = 1, int $perPage = 10): array
     {
+        $db = \Config\Database::connect();
+        
+        $totalQuery = $db->table('productos')
+            ->where('deleted_at', null);
+        
         if ($q) {
-            return $this->model->like('nombre', $q)->findAll();
+            $totalQuery->like('nombre', $q);
         }
-        return $this->model->findAll();
+        
+        $total = $totalQuery->countAllResults();
+
+        $builder = $db->table('productos')
+            ->where('deleted_at', null);
+        
+        if ($q) {
+            $builder->like('nombre', $q);
+        }
+
+        $offset = ($page - 1) * $perPage;
+        $productos = $builder->orderBy('id', 'ASC')
+            ->limit($perPage, $offset)
+            ->get()
+            ->getResult();
+
+        return [
+            'data' => $productos,
+            'pagination' => [
+                'currentPage' => $page,
+                'perPage' => $perPage,
+                'total' => $total,
+                'lastPage' => (int) ceil($total / $perPage),
+            ]
+        ];
     }
 
     public function obtenerPorId(int $id)

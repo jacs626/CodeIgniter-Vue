@@ -14,17 +14,6 @@ class ProductoModel extends Model
 
     protected $returnType = ProductoEntity::class;
 
-    protected $allowedFields = [
-        'nombre',
-        'precio_actual',
-        'precio_objetivo'
-    ];
-
-    protected $useTimestamps = true;
-    protected $createdField = 'created_at';
-    protected $updatedField = 'updated_at';
-    protected $afterFind = ['setEnOferta'];
-
     protected function setEnOferta(array $data): array
     {
         if (!isset($data['data'])) {

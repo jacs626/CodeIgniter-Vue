@@ -32,8 +32,11 @@ export function useProducto() {
   const loading = ref(false);
   const error = ref<string | null>(null);
   const searchQuery = ref('');
+  const currentPage = ref(1);
+  const totalPages = ref(1);
 
   watch(searchQuery, () => {
+    currentPage.value = 1;
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       obtenerProductos();
@@ -45,10 +48,17 @@ export function useProducto() {
     error.value = null;
     try {
       const res = await api.get('/productos', {
-        params: { q: searchQuery.value || undefined }
-      }) as ApiResponse<Producto[]>;
+        params: {
+          q: searchQuery.value || undefined,
+          page: currentPage.value
+        }
+      }) as ApiResponse<Producto[]> & { meta?: { currentPage: number; lastPage: number } };
       if (res.status === 'success') {
         productos.value = res.data;
+        if (res.meta) {
+          currentPage.value = res.meta.currentPage;
+          totalPages.value = res.meta.lastPage;
+        }
       } else {
         error.value = res.message;
       }
@@ -98,7 +108,7 @@ export function useProducto() {
 
   const eliminarProducto = async (id: number) => {
     if (!confirm('¿Estás seguro de eliminar este producto?')) return;
-    
+
     loading.value = true;
     error.value = null;
     try {
@@ -116,11 +126,19 @@ export function useProducto() {
     }
   };
 
+  const cambiarPagina = (page: number) => {
+    currentPage.value = page;
+    obtenerProductos();
+  };
+
   return {
     productos,
     loading,
     error,
     searchQuery,
+    currentPage,
+    totalPages,
+    cambiarPagina,
     obtenerProductos,
     crearProducto,
     actualizarProducto,

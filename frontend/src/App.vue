@@ -6,7 +6,7 @@ import ProductForm from './components/ProductForm/index.vue';
 import ProductList from './components/ProductList/index.vue';
 import './styles/global.css';
 
-const { productos, searchQuery, obtenerProductos, crearProducto, actualizarProducto, eliminarProducto } = useProducto();
+const { productos, searchQuery, currentPage, totalPages, cambiarPagina, obtenerProductos, crearProducto, actualizarProducto, eliminarProducto } = useProducto();
 
 const nuevoProducto = ref({
   nombre: '',
@@ -70,8 +70,11 @@ obtenerProductos();
         :productos="productos"
         v-model:searchQuery="searchQuery"
         v-model:onlyOffers="onlyOffers"
+        :currentPage="currentPage"
+        :totalPages="totalPages"
         @editar="cargarProducto"
         @eliminar="eliminarProducto"
+        @changePage="cambiarPagina"
       />
     </main>
   </div>
