@@ -1,650 +1,245 @@
 # Sistema de Seguimiento de Precios
 
-Proyecto fullstack para gestion de productos con seguimiento de precios y ofertas.
+Proyecto fullstack para gestión de productos con seguimiento de precios y detección de ofertas.
 
-## Tecnologias
-
-| Capa         | Framework          | Version |
-| ------------ | ------------------ | ------- |
-| **Frontend** | Vue 3 + TypeScript | 3.5.x   |
-| **Build**    | Vite               | 8.x     |
-| **HTTP**     | Axios              | 1.16.x  |
-| **Backend**  | CodeIgniter        | 4.7.x   |
-| **DB**       | MySQL/MariaDB      | 9.7     |
+El objetivo del proyecto es aprender arquitectura moderna con CodeIgniter 4 + Vue 3, aplicando separación de responsabilidades real entre capas.
 
 ---
 
-## Ejecucion
+## 🧠 Idea del sistema
+
+Un producto se considera en oferta cuando:
+
+precio_actual <= precio_objetivo
+
+Esta lógica vive en el backend (Entity), no en el frontend.
+
+---
+
+## 🚀 Ejecución
 
 ### Backend
 
-```bash
 cd backend
 php spark serve
+
 # http://localhost:8080
-```
 
 ### Frontend
 
-```bash
 cd frontend
+npm install
 npm run dev
+
 # http://localhost:5173
-```
 
 ---
 
-## Estructura
+## 🏗️ Arquitectura general
 
-```
-Proyectos/
-├── backend/
-│   ├── app/
-│   │   ├── Config/          # Configuraciones (Routes, Services, CORS)
-│   │   ├── Controllers/    # Controladores REST
-│   │   ├── Entities/       # Entities (representacion de datos)
-│   │   ├── Models/        # Modelos con hooks
-│   │   ├── Services/       # Logica de negocio
-│   │   ├── Transformers/  # Transformadores (formato API)
-│   │   ├── Database/      # Migrations + Seeds
-│   │   └── Validation/    # Reglas de validacion
-│   └── system/            # CodeIgniter core
-│
-└── frontend/
-    ├── src/
-    │   ├── components/    # Componentes Vue
-    │   ├── composables/    # Logica reutilizable
-    │   ├── types/          # TypeScript interfaces
-    │   └── styles/        # CSS global
-    └── public/
-```
-
----
-
-## ARQUITECTURA BACKEND (CodeIgniter 4)
-
-### Flujo de una peticion
-
-```
 HTTP Request
-    │
-Routes (app/Config/Routes.php)
-    │
-Filter (CORS) (app/Config/Filters.php)
-    │
-Controller (ProductoController)
-    │         ↘
-    │          → Transformer (ProductoTransformer)
-    │                   ↙
-Service (ProductosService)
-    │
-Model (ProductoModel + returnType = Entity)
-    │
-afterFind hook → setEnOferta()
-    │
-Entity (ProductoEntity) + getEnOferta()
-    │
-JSON Response (formato controlado por Transformer)
-```
+↓
+Controller
+↓
+Service (lógica de negocio)
+↓
+Model (acceso a datos)
+↓
+Entity (reglas de dominio)
+↓
+Transformer (formato API)
+↓
+JSON Response
 
-### 1. Controller - Capa de Recepcion
+---
 
-**Archivo:** `backend/app/Controllers/ProductoController.php`
+# 🔙 BACKEND (CodeIgniter 4)
 
-```php
-use App\Transformers\ProductoTransformer;
-use CodeIgniter\RESTful\ResourceController;
+## Controller (ProductoController)
 
 class ProductoController extends ResourceController
-{
-    protected $service;
-    protected $transformer;
 
-    public function __construct()
-    {
-        $this->service = service('productoService');
-        $this->transformer = new ProductoTransformer();
-    }
+Herramientas usadas:
 
-    public function index()
-    {
-        $q = $this->request->getGet('q');
-        $productos = $this->service->obtenerTodos($q);
+- ResourceController → CRUD REST automático
+- service('productoService') → inyección de servicio
+- respond() → respuesta HTTP estándar
+- failNotFound() / failValidationErrors() → manejo de errores
 
-        // Transformar antes de responder
-        $data = $this->transformer->transformCollection($productos);
+Rol: solo recibe requests y delega lógica.
 
-        return $this->respond([
-            "status" => "success",
-            "message" => "Lista de productos",
-            "data" => $data
-        ], 200);
-    }
+---
 
-    public function show($id = null)
-    {
-        $producto = $this->service->obtenerPorId($id);
+## Service (ProductosService)
 
-        if (!$producto) {
-            return $this->failNotFound("Producto no encontrado");
-        }
+Herramientas usadas:
 
-        // Transformar antes de responder
-        $data = $this->transformer->transform($producto);
+- model('ProductoModel') → acceso al modelo
 
-        return $this->respond([
-            "status" => "success",
-            "message" => "Producto encontrado",
-            "data" => $data
-        ], 200);
-    }
-}
-```
+Rol:
 
-**Herramientas CodeIgniter utilizadas:**
+- crear productos
+- actualizar productos
+- eliminar productos
+- buscar productos
 
-- `ResourceController` - RESTful base controller
-- Transformer - Formato de salida
+---
 
-### 2. Service - Logica de Negocio
+## Model (ProductoModel)
 
-**Archivo:** `backend/app/Services/ProductosService.php`
+protected $returnType = ProductoEntity::class;
 
-```php
-class ProductosService
-{
-    protected $model;
+Herramientas CodeIgniter usadas:
 
-    public function __construct()
-    {
-        $this->model = model('ProductoModel');
-    }
+- Model → acceso a base de datos
+- allowedFields → campos permitidos
+- useSoftDeletes → eliminación lógica
+- returnType → retorna Entity
 
-    public function obtenerTodos(?string $q = null)
-    {
-        if ($q) {
-            return $this->model->like('nombre', $q)->findAll();
-        }
-        return $this->model->findAll();
-    }
+Rol: solo datos, sin lógica de negocio.
 
-    public function obtenerPorId(int $id)
-    {
-        return $this->model->find($id);
-    }
+---
 
-    public function crear(array $data)
-    {
-        return $this->model->insert($data);
-    }
-
-    public function actualizar(int $id, array $data)
-    {
-        if (!$this->model->find($id)) {
-            return null;
-        }
-        $this->model->update($id, $data);
-        return $this->model->find($id);
-    }
-
-    public function eliminar(int $id)
-    {
-        if (!$this->model->find($id)) {
-            return null;
-        }
-        $this->model->delete($id);
-        return true;
-    }
-}
-```
-
-**Herramientas CodeIgniter utilizadas:**
-
-- `model('ProductoModel')` - Inyeccion de Model via Service
-- Registro en `app/Config/Services.php`
-
-### 3. Entity - Representacion de Datos
-
-**Archivo:** `backend/app/Entities/ProductoEntity.php`
-
-```php
-use CodeIgniter\Entity\Entity;
+## Entity (ProductoEntity)
 
 class ProductoEntity extends Entity
+
+Herramientas usadas:
+
+- $attributes → estructura del objeto
+- $casts → conversión automática de tipos
+
+Lógica de negocio:
+
+public function getEnOferta(): bool
 {
-    // Campos que vienen de la base de datos
-    protected $attributes = [
-        'id'            => null,
-        'nombre'        => null,
-        'precio_actual' => null,
-        'precio_objetivo'=> null,
-        'en_oferta'     => null,
-    ];
-
-    // Conversion automatica de tipos
-    protected $casts = [
-        'id'            => 'int',
-        'precio_actual' => 'float',
-        'precio_objetivo'=> 'float',
-        'en_oferta'     => 'bool',
-    ];
-
-    // Logica de negocio encapsulada
-    public function getEnOferta(): bool
-    {
-        return (float) ($this->precio_actual ?? 0) <= (float) ($this->precio_objetivo ?? 0);
-    }
+return (float) $this->precio_actual <= (float) $this->precio_objetivo;
 }
-```
 
-**Herramientas CodeIgniter utilizadas:**
+Rol:
 
-- `CodeIgniter\Entity\Entity` - Base Entity
-- `$attributes` - Mapeo de campos BD
-- `$casts` - Conversion automatica de tipos
-- `getEnOferta()` - Getter para logica de negocio
+- contiene reglas del dominio
+- representa el producto como objeto real
 
-### 4. Model - Acceso a Datos
+---
 
-**Archivo:** `backend/app/Models/ProductoModel.php`
+## Transformer (ProductoTransformer)
 
-```php
-use App\Entities\ProductoEntity;
+Herramientas usadas:
 
-class ProductoModel extends Model
-{
-    protected $table = 'productos';
-    protected $useSoftDeletes = true;
+- transform() → Entity a array
+- array_map() → listas
 
-    // Retorna objetos Entity en lugar de arrays
-    protected $returnType = ProductoEntity::class;
+Ejemplo:
 
-    // Hook que usa la logica de la Entity
-    protected $afterFind = ['setEnOferta'];
-
-    protected function setEnOferta(array $data): array
-    {
-        $productos = is_array($data['data']) ? $data['data'] : [$data['data']];
-
-        foreach ($productos as $producto) {
-            if ($producto instanceof ProductoEntity) {
-                // Usa el metodo de la Entity
-                $producto->en_oferta = $producto->getEnOferta();
-            }
-        }
-
-        return $data;
-    }
-}
-```
-
-**Herramientas CodeIgniter utilizadas:**
-
-- `CodeIgniter\Model` - Base Model
-- `$returnType` - Tipo de retorno (Entity)
-- `$afterFind` - Hook despues de cada SELECT
-- `useSoftDeletes` - Soft delete automatico
-- `useTimestamps` - created_at/updated_at automaticos
-- `allowedFields` - Whitelist de campos
-
-### 5. Transformer - Formato de Salida
-
-**Archivo:** `backend/app/Transformers/ProductoTransformer.php`
-
-```php
-use App\Entities\ProductoEntity;
-
-class ProductoTransformer
-{
-    // Transforma un solo producto
-    public function transform(ProductoEntity $producto): array
-    {
-        return [
-            'id'            => $producto->id,
-            'nombre'        => $producto->nombre,
-            'precio_actual' => $producto->precio_actual,
-            'precio_objetivo'=> $producto->precio_objetivo,
-            'en_oferta'     => $producto->getEnOferta(),
-        ];
-    }
-
-    // Transforma una lista de productos
-    public function transformCollection(array $productos): array
-    {
-        return array_map(fn($p) => $this->transform($p), $productos);
-    }
-}
-```
-
-**Herramientas utilizadas:**
-
-- `array_map` - Transformar lista
-- Oculta campos sensibles
-- Formato controlado para la API
-
-### 6. Routes - Endpoint Definitions
-
-**Archivo:** `backend/app/Config/Routes.php`
-
-```php
-$routes->resource('productos', ['controller' => 'ProductoController']);
-// Genera automaticamente:
-// GET    /productos        → index()
-// POST   /productos        → create()
-// GET    /productos/:id    → show()
-// PUT    /productos/:id    → update()
-// DELETE /productos/:id    → delete()
-```
-
-### 7. Service Registration
-
-**Archivo:** `backend/app/Config/Services.php`
-
-```php
-public static function productoService($getShared = true)
-{
-    if ($getShared) {
-        return static::getSharedInstance('productoService');
-    }
-    return new \App\Services\ProductosService();
-}
-```
-
-**Uso en Controller:**
-
-```php
-$this->service = service('productoService');
-```
-
-### 8. CORS Configuration
-
-**Archivo:** `backend/app/Config/Cors.php`
-
-```php
-public array $default = [
-    'allowedOrigins' => ['http://localhost:5173'],
-    'allowedMethods' => ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    'allowedHeaders' => ['Content-Type'],
+return [
+'id' => $producto->id,
+'nombre' => $producto->nombre,
+'precio_actual' => $producto->precio_actual,
+'precio_objetivo' => $producto->precio_objetivo,
+'en_oferta' => $producto->getEnOferta(),
 ];
-```
+
+Rol:
+controla la forma final del JSON de la API
 
 ---
 
-## ARQUITECTURA FRONTEND (Vue 3 + TypeScript)
+## Routes
 
-### Flujo de Datos
+$routes->resource('productos');
 
-```
-User Action
-    │
-Component (ProductList.vue)
-    │
-Composable (useProducto.ts)
-    │
-API Call (axios)
-    │
-Backend REST API
-    │
-Reactive Update (ref + watch)
-    │
-UI Update
-```
+Genera:
 
-### 1. Tipos TypeScript
+- GET /productos
+- GET /productos/{id}
+- POST /productos
+- PUT /productos/{id}
+- DELETE /productos/{id}
 
-**Archivo:** `frontend/src/types/index.ts`
+---
 
-```typescript
-export interface Producto {
-  id: number;
-  nombre: string;
-  precio_actual: string | number;
-  precio_objetivo: string | number;
-  en_oferta?: boolean;
-}
+# 🌐 FRONTEND (Vue 3 + TypeScript)
 
-export interface ProductoForm {
-  nombre: string;
-  precio_actual: number;
-  precio_objetivo: number;
-}
-```
+## Composables (useProducto)
 
-### 2. Composable - Logica de Estado
+Herramientas Vue usadas:
 
-**Archivo:** `frontend/src/composables/useProducto.ts`
+- ref() → estado reactivo
+- watch() → cambios
+- computed() → datos derivados
 
-```typescript
-export function useProducto() {
-  const productos = ref<Producto[]>([]);     // Estado reactivo
-  const loading = ref(false);
-  const error = ref<string | null>(null);
-  const searchQuery = ref('');
+Rol:
+centraliza lógica de productos
 
-  // Watcher con debounce para busqueda
-  watch(searchQuery, () => {
-    debounceTimer = setTimeout(() => {
-      obtenerProductos();
-    }, 300);
-  });
+---
 
-  // Metodos API
-  const obtenerProductos = async () => { ... }
-  const crearProducto = async (data: ProductoForm) => { ... }
-  const actualizarProducto = async (id: number, data: ProductoForm) => { ... }
-  const eliminarProducto = async (id: number) => { ... }
+## Componentes
 
-  return { productos, loading, error, searchQuery, ... };
-}
-```
+ProductList.vue:
 
-**Herramientas Vue utilizadas:**
+- defineProps()
+- v-model
+- v-for
+- v-if
+- computed()
 
-- `ref()` - Estado reactivo primitivo
-- `watch()` - Reaccion a cambios
-- `computed()` - Propiedades derivadas (en ProductList)
+ProductCard.vue:
 
-### 3. Componentes Vue
+- props
+- v-if
+- :class
 
-#### ProductList.vue - Filtros y Grid
+---
 
-```vue
-<script setup lang="ts">
-const props = defineProps<{
-  productos: Producto[];
-  searchQuery: string;
-  onlyOffers?: boolean;
-}>();
+## Axios
 
-// Computed para filtrar localmente
-const filteredProducts = computed(() => {
-  let result = props.productos;
-  if (props.onlyOffers) {
-    result = result.filter((p) => p.en_oferta);
-  }
-  return result;
-});
-</script>
-
-<template>
-  <!-- Input con v-model:searchQuery -->
-  <!-- Checkbox con v-model:onlyOffers -->
-  <!-- Grid de ProductCard con v-for -->
-</template>
-```
-
-**Herramientas Vue utilizadas:**
-
-- `defineProps()` - Props tipadas
-- `defineEmits()` - Eventos
-- `computed()` - Propiedad derivada
-- `v-model` - Two-way binding
-
-#### ProductCard.vue - Visualizacion
-
-```vue
-<template>
-  <article class="product-card" :class="{ 'en-oferta': producto.en_oferta }">
-    <div class="product-header">
-      <h3>{{ producto.nombre }}</h3>
-      <span v-if="producto.en_oferta" class="badge-oferta">🔥</span>
-    </div>
-  </article>
-</template>
-```
-
-**Herramientas Vue utilizadas:**
-
-- `v-if` - Renderizado condicional
-- `v-for` - Renderizado de listas
-- `:key` - Identificador unico
-- `:class` - Clases dinamicas
-
-### 4. Axios - Cliente HTTP
-
-```typescript
 const api = axios.create({
-  baseURL: "http://localhost:8080",
+baseURL: "http://localhost:8080",
 });
 
-// Interceptor para extraer data automaticamente
-api.interceptors.response.use(
-  (response) => response.data,
-  (error) => Promise.reject(error.response.data),
-);
-```
+---
+
+# 🧩 ARQUITECTURA
+
+Controller → HTTP  
+Service → lógica de negocio  
+Model → datos  
+Entity → dominio  
+Transformer → API
 
 ---
 
-## CARACTERISTICAS IMPLEMENTADAS
+## Entity vs Model
 
-| Feature             | Backend                | Frontend         |
-| ------------------- | ---------------------- | ---------------- |
-| CRUD productos      | Controller + Service   | Axios calls      |
-| Campo `en_oferta`   | Model hook `afterFind` | Visual 🔥        |
-| Busqueda por nombre | Query param `?q=`      | Watch + debounce |
-| Filtro ofertas      | -                      | `computed`       |
-| Soft deletes        | Model `useSoftDeletes` | DELETE endpoint  |
+Model → datos  
+Entity → lógica
+
+La lógica NO está en frontend ni en controller.
 
 ---
 
-## HERRAMIENTAS CLAVE POR PROYECTO
+## Transformer
 
-### CodeIgniter 4
-
-| Herramienta           | Uso                      |
-| --------------------- | ------------------------ |
-| `ResourceController`  | Base RESTful             |
-| `Model::afterFind`    | Hook campo calculado     |
-| `Entity`              | Objeto representan datos |
-| `Transformer`         | Formato de salida API    |
-| `$returnType`         | Tipo de retorno Model    |
-| `model()` helper      | Inyeccion Model          |
-| `service()` helper    | Inyeccion Service        |
-| `$routes->resource()` | Auto-rutas REST          |
-| `useSoftDeletes`      | Soft delete              |
-| `useTimestamps`       | Fechas automaticas       |
-
-### Vue 3
-
-| Herramienta     | Uso                     |
-| --------------- | ----------------------- |
-| `ref()`         | Estado reactivo         |
-| `watch()`       | Reaccion a cambios      |
-| `computed()`    | Propiedades derivadas   |
-| `defineProps()` | Props tipadas           |
-| `defineEmits()` | Eventos                 |
-| `v-model`       | Two-way binding         |
-| `v-if`          | Renderizado condicional |
-| `v-for`         | Renderizado de listas   |
-| `:key`          | Identificador unico     |
+- controla JSON
+- evita exponer datos innecesarios
+- desacopla API
 
 ---
 
-## VERIFICACIONES
+## Vue Composables
 
-```bash
-# Frontend
-cd frontend
-npm run lint        # Oxlint + ESLint
-npm run type-check # vue-tsc
-
-# Backend
-cd backend
-php spark migrate:status # Ver migrations
-php spark serve        # Iniciar server
-```
+- reutilización de lógica
+- estado centralizado
+- evita duplicación
 
 ---
 
-## APRENDIZAJE - CONCEPTOS CLAVE
+# 🧠 APRENDIZAJES
 
-### Por que Separacion de Responsabilidades?
-
-```
-Controller  → No logica de datos, solo HTTP
-Service    → Logica de negocio, abstraccion del Model
-Model      → Solo acceso a datos + hooks
-```
-
-**Beneficio:** Facil de testear y mantener.
-
-### Por que Model Hook?
-
-```php
-//antes: logica en frontend
-$producto->en_oferta = ($precio <= $objetivo);
-
-//ahora: logica en backend
-protected $afterFind = ['setEnOferta'];
-// El campo se calcula automaticamente en CADA query
-```
-
-**Beneficio:** El campo siempre existe en la respuesta API.
-
-### Por que Entities?
-
-```
-Array          → Solo datos (clave-valor)
-Entity         → Datos + metodos (logica encapsulada)
-
-$producto['en_oferta']     // array
-$producto->getEnOferta()   // entity con logica
-$producto->en_oferta       // property con valor calculado
-```
-
-**Beneficio:**
-
-- Logica de negocio junto a los datos
-- Tipos automaticos con $casts
-- Codigo mas legible y mantenible
-
-### Por que Transformers?
-
-```
-Sin Transformer          → Entity directa a JSON
-Con Transformer         → Formato controlado
-
-Antes:  return $entity           // expone todos los campos
-Ahora:  return transform($entity)  // solo campos que quieres
-```
-
-**Beneficio:**
-
-- Control total sobre la respuesta JSON
-- Ocultar campos sensibles (passwords, timestamps)
-- Formato independiente de la Entity
-- Desacoplamiento entre Entity y API
-
-### Por que Composables?
-
-```typescript
-// Malo: logica en cada componente
-// const producto1 = ref([]) en ComponentA
-// const producto2 = ref([]) en ComponentB
-
-// Bueno: composable compartido
-const { productos } = useProducto(); // Reutilizable
-```
-
-**Beneficio:** Estado compartido, codigo reutilizable.
+- arquitectura por capas real
+- separación de responsabilidades
+- Entity como dominio
+- transformación de API
+- Vue 3 Composition API
+- estado reactivo con ref/watch/computed
