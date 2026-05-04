@@ -8,13 +8,17 @@ class ProductosService
 
     public function __construct()
     {
-        require_once dirname(FCPATH) . '/app/Models/ProductoModel.php';
-        $this->model = new \App\Models\ProductoModel();
+        $this->model = model('ProductoModel');
     }
 
     public function obtenerTodos()
     {
         return $this->model->findAll();
+    }
+
+    public function obtenerPorId($id)
+    {
+        return $this->model->find($id);
     }
 
     public function crear($data)

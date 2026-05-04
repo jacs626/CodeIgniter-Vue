@@ -17,7 +17,12 @@ class ProductoController extends ResourceController
     public function index()
     {
         $productos = $this->service->obtenerTodos();
-        return $this->respond($productos);
+
+        return $this->respond([
+            "status" => "success",
+            "message" => "Lista de productos",
+            "data" => $productos
+        ], 200);
     }
 
     public function create()
@@ -29,11 +34,28 @@ class ProductoController extends ResourceController
             return $this->failValidationErrors($this->validator->getErrors());
         }
 
-        $this->service->crear($data);
+        $producto = $this->service->crear($data);
 
         return $this->respondCreated([
-            "message" => "Producto creado"
+            "status" => "success",
+            "message" => "Producto creado",
+            "data" => $producto
         ]);
+    }
+
+    public function show($id = null)
+    {
+        $producto = $this->service->obtenerPorId($id);
+
+        if (!$producto) {
+            return $this->failNotFound("Producto no encontrado");
+        }
+
+        return $this->respond([
+            "status" => "success",
+            "message" => "Producto encontrado",
+            "data" => $producto
+        ], 200);
     }
 
     public function update($id = null)
@@ -45,15 +67,17 @@ class ProductoController extends ResourceController
             return $this->failValidationErrors($this->validator->getErrors());
         }
 
-        $result = $this->service->actualizar($id, $data);
+        $producto = $this->service->actualizar($id, $data);
 
-        if (!$result) {
+        if (!$producto) {
             return $this->failNotFound("Producto no encontrado");
         }
 
         return $this->respond([
-            "message" => "Producto actualizado"
-        ]);
+            "status" => "success",
+            "message" => "Producto actualizado",
+            "data" => $producto
+        ], 200);
     }
 
     public function delete($id = null)
@@ -64,7 +88,8 @@ class ProductoController extends ResourceController
             return $this->failNotFound("Producto no encontrado");
         }
 
-        return $this->respond([
+        return $this->respondDeleted([
+            "status" => "success",
             "message" => "Producto eliminado"
         ]);
     }

@@ -21,8 +21,6 @@ class Services extends BaseService
 {
     public static function productoService($getShared = true)
     {
-        require_once dirname(FCPATH) . '/app/Services/ProductosService.php';
-        
         if ($getShared) {
             return static::getSharedInstance('productoService');
         }

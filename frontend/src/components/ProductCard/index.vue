@@ -19,11 +19,11 @@ defineEmits<{
       <div class="prices">
         <div class="price-item">
           <span class="label">Actual</span>
-          <span class="value">${{ Number(producto.precio_actual).toFixed(2) }}</span>
+          <span class="value">${{ Number(producto.precio_actual || 0).toFixed(2) }}</span>
         </div>
         <div class="price-item">
           <span class="label">Objetivo</span>
-          <span class="value">${{ Number(producto.precio_objetivo).toFixed(2) }}</span>
+          <span class="value">${{ Number(producto.precio_objetivo || 0).toFixed(2) }}</span>
         </div>
       </div>
     </div>
