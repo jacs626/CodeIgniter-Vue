@@ -1,3 +1,4 @@
+<script setup lang="ts">
 import type { Producto } from '../../types';
 import './index.css';
 
@@ -28,9 +29,7 @@ defineEmits<{
     </div>
     <div class="product-actions">
       <button class="btn btn-edit" @click="$emit('editar', producto)">Editar</button>
-      <button class="btn btn-delete" @click="$emit('eliminar', producto.id)">
-        Eliminar
-      </button>
+      <button class="btn btn-delete" @click="$emit('eliminar', producto.id)">Eliminar</button>
     </div>
   </article>
 </template>
