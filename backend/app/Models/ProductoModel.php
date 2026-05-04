@@ -12,6 +12,12 @@ class ProductoModel extends Model
     protected $useSoftDeletes = true;
     protected $deletedField  = 'deleted_at';
 
+    protected $allowedFields = [
+        'nombre',
+        'precio_actual',
+        'precio_objetivo'
+    ];
+
     protected $returnType = ProductoEntity::class;
 
     protected function setEnOferta(array $data): array
