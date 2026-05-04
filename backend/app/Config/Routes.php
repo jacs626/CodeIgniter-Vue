@@ -13,7 +13,9 @@ $routes->options('productos', function () {
 $routes->options('productos/(:num)', function () {
     return service('response')->setStatusCode(200);
 });
-$routes->get('productos', 'ProductoController::index');
-$routes->post('productos', 'ProductoController::create');
-$routes->put('productos/(:num)', 'ProductoController::update/$1');
-$routes->delete('productos/(:num)', 'ProductoController::delete/$1');
+// $routes->get('productos', 'ProductoController::index');
+// $routes->post('productos', 'ProductoController::create');
+// $routes->put('productos/(:num)', 'ProductoController::update/$1');
+// $routes->delete('productos/(:num)', 'ProductoController::delete/$1');
+$routes->resource('productos', ['controller' => 'ProductoController']);
+
