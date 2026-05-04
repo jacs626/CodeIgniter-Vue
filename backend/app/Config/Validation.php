@@ -27,6 +27,12 @@ class Validation extends BaseConfig
         CreditCardRules::class,
     ];
 
+    public $producto = [
+        'nombre' => 'required|min_length[3]',
+        'precio_actual' => 'required|decimal',
+        'precio_objetivo' => 'required|decimal',
+    ];
+
     /**
      * Specifies the views that are used to display the
      * errors.

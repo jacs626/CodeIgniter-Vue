@@ -2,7 +2,6 @@
 
 namespace App\Controllers;
 
-use App\Validation\ProductoValidation;
 use CodeIgniter\RESTful\ResourceController;
 
 class ProductoController extends ResourceController
@@ -28,9 +27,8 @@ class ProductoController extends ResourceController
     public function create()
     {
         $data = $this->request->getJSON(true);
-        $rules = ProductoValidation::rules();
 
-        if (!$this->validateData($data, $rules)) {
+        if (!$this->validate('producto')) {
             return $this->failValidationErrors($this->validator->getErrors());
         }
 
@@ -47,8 +45,8 @@ class ProductoController extends ResourceController
     {
         $producto = $this->service->obtenerPorId($id);
 
-        if (!$producto) {
-            return $this->failNotFound("Producto no encontrado");
+        if (!$this->validate('producto')) {
+            return $this->failValidationErrors($this->validator->getErrors());
         }
 
         return $this->respond([
@@ -61,9 +59,8 @@ class ProductoController extends ResourceController
     public function update($id = null)
     {
         $data = $this->request->getJSON(true);
-        $rules = ProductoValidation::rules();
 
-        if (!$this->validateData($data, $rules)) {
+        if (!$this->validate('producto')) {
             return $this->failValidationErrors($this->validator->getErrors());
         }
 
