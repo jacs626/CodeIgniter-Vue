@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import axios from 'axios';
 import type { Producto, ProductoForm } from '../types';
 
@@ -15,11 +15,6 @@ const api = axios.create({
   },
 });
 
-api.interceptors.request.use((config) => {
-  console.log('Request:', config);
-  return config;
-});
-
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
@@ -30,16 +25,28 @@ api.interceptors.response.use(
   }
 );
 
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
 export function useProducto() {
   const productos = ref<Producto[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const searchQuery = ref('');
+
+  watch(searchQuery, () => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      obtenerProductos();
+    }, 300);
+  });
 
   const obtenerProductos = async () => {
     loading.value = true;
     error.value = null;
     try {
-      const res = await api.get('/productos') as unknown as ApiResponse<Producto[]>;
+      const res = await api.get('/productos', {
+        params: { q: searchQuery.value || undefined }
+      }) as ApiResponse<Producto[]>;
       if (res.status === 'success') {
         productos.value = res.data;
       } else {
@@ -57,7 +64,7 @@ export function useProducto() {
     loading.value = true;
     error.value = null;
     try {
-      const res = await api.post('/productos', data) as unknown as ApiResponse<void>;
+      const res = await api.post('/productos', data) as ApiResponse<void>;
       if (res.status !== 'success') {
         error.value = res.message;
         return;
@@ -75,7 +82,7 @@ export function useProducto() {
     loading.value = true;
     error.value = null;
     try {
-      const res = await api.put(`/productos/${id}`, data) as unknown as ApiResponse<void>;
+      const res = await api.put(`/productos/${id}`, data) as ApiResponse<void>;
       if (res.status !== 'success') {
         error.value = res.message;
         return;
@@ -95,7 +102,7 @@ export function useProducto() {
     loading.value = true;
     error.value = null;
     try {
-      const res = await api.delete(`/productos/${id}`) as unknown as ApiResponse<void>;
+      const res = await api.delete(`/productos/${id}`) as ApiResponse<void>;
       if (res.status !== 'success') {
         error.value = res.message;
         return;
@@ -113,6 +120,7 @@ export function useProducto() {
     productos,
     loading,
     error,
+    searchQuery,
     obtenerProductos,
     crearProducto,
     actualizarProducto,

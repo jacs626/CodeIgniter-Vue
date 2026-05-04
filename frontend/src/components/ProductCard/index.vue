@@ -13,9 +13,12 @@ defineEmits<{
 </script>
 
 <template>
-  <article class="product-card">
+  <article class="product-card" :class="{ 'en-oferta': producto.en_oferta }">
     <div class="product-info">
-      <h3>{{ producto.nombre }}</h3>
+      <div class="product-header">
+        <h3>{{ producto.nombre }}</h3>
+        <span v-if="producto.en_oferta" class="badge-oferta">🔥</span>
+      </div>
       <div class="prices">
         <div class="price-item">
           <span class="label">Actual</span>

@@ -24,6 +24,16 @@ class ProductoSeeder extends Seeder
                 'precio_actual' => 30000,
                 'precio_objetivo' => 25000,
             ],
+            [
+                'nombre' => 'Audifonos Oferta',
+                'precio_actual' => 50,
+                'precio_objetivo' => 100,
+            ],
+            [
+                'nombre' => 'Monitor Barato',
+                'precio_actual' => 80,
+                'precio_objetivo' => 150,
+            ],
         ];
 
         $this->db->table('productos')->insertBatch($data);

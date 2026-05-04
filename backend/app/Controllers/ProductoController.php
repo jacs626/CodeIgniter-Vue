@@ -15,7 +15,8 @@ class ProductoController extends ResourceController
 
     public function index()
     {
-        $productos = $this->service->obtenerTodos();
+        $q = $this->request->getGet('q');
+        $productos = $this->service->obtenerTodos($q);
 
         return $this->respond([
             "status" => "success",

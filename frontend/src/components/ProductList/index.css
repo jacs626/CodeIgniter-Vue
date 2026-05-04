@@ -5,6 +5,45 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+.filters {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #4299e1;
+}
+
+.filter-offer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 8px 12px;
+  background: #fff5f5;
+  border-radius: 8px;
+  color: #c53030;
+  font-weight: 500;
+}
+
+.filter-offer input {
+  width: 16px;
+  height: 16px;
+}
+
 .list-section h2 {
   font-size: 1.1rem;
   margin-bottom: 20px;

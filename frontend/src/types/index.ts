@@ -3,6 +3,7 @@ export interface Producto {
   nombre: string;
   precio_actual: string | number;
   precio_objetivo: string | number;
+  en_oferta?: boolean;
 }
 
 export interface ProductoForm {

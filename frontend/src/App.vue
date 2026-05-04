@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useProducto } from './composables/useProducto';
+import type { Producto } from './types';
 import ProductForm from './components/ProductForm/index.vue';
 import ProductList from './components/ProductList/index.vue';
 import './styles/global.css';
 
-const { productos, obtenerProductos, crearProducto, actualizarProducto, eliminarProducto } = useProducto();
+const { productos, searchQuery, obtenerProductos, crearProducto, actualizarProducto, eliminarProducto } = useProducto();
 
 const nuevoProducto = ref({
   nombre: '',
@@ -15,9 +16,14 @@ const nuevoProducto = ref({
 
 const editando = ref(false);
 const productoEditandoId = ref<number | null>(null);
+const onlyOffers = ref(false);
 
-const cargarProducto = (producto: typeof nuevoProducto.value & { id: number }) => {
-  nuevoProducto.value = { ...producto };
+const cargarProducto = (producto: Producto) => {
+  nuevoProducto.value = {
+    nombre: producto.nombre,
+    precio_actual: Number(producto.precio_actual),
+    precio_objetivo: Number(producto.precio_objetivo),
+  };
   productoEditandoId.value = producto.id;
   editando.value = true;
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -62,6 +68,8 @@ obtenerProductos();
 
       <ProductList
         :productos="productos"
+        v-model:searchQuery="searchQuery"
+        v-model:onlyOffers="onlyOffers"
         @editar="cargarProducto"
         @eliminar="eliminarProducto"
       />
