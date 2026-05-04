@@ -1,7 +1,34 @@
 import { ref } from 'vue';
+import axios from 'axios';
 import type { Producto, ProductoForm } from '../types';
 
-const API_URL = 'http://localhost:8080/productos';
+interface ApiResponse<T> {
+  status: string;
+  data: T;
+  message: string;
+}
+
+const api = axios.create({
+  baseURL: 'http://localhost:8080',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+api.interceptors.request.use((config) => {
+  console.log('Request:', config);
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    if (error.response) {
+      return Promise.reject(error.response.data);
+    }
+    return Promise.reject({ message: 'Error de conexión' });
+  }
+);
 
 export function useProducto() {
   const productos = ref<Producto[]>([]);
@@ -12,16 +39,15 @@ export function useProducto() {
     loading.value = true;
     error.value = null;
     try {
-      const res = await fetch(API_URL);
-      const json = await res.json();
-      if (json.status === 'success') {
-        productos.value = json.data;
+      const res = await api.get('/productos') as unknown as ApiResponse<Producto[]>;
+      if (res.status === 'success') {
+        productos.value = res.data;
       } else {
-        error.value = json.message;
+        error.value = res.message;
       }
-    } catch (e) {
-      error.value = 'Error al obtener productos';
-      console.error(e);
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      error.value = err.message || 'Error al obtener productos';
     } finally {
       loading.value = false;
     }
@@ -31,20 +57,15 @@ export function useProducto() {
     loading.value = true;
     error.value = null;
     try {
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      const json = await res.json();
-      if (json.status !== 'success') {
-        error.value = json.message;
+      const res = await api.post('/productos', data) as unknown as ApiResponse<void>;
+      if (res.status !== 'success') {
+        error.value = res.message;
         return;
       }
       await obtenerProductos();
-    } catch (e) {
-      error.value = 'Error al crear producto';
-      console.error(e);
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      error.value = err.message || 'Error al crear producto';
     } finally {
       loading.value = false;
     }
@@ -54,20 +75,15 @@ export function useProducto() {
     loading.value = true;
     error.value = null;
     try {
-      const res = await fetch(`${API_URL}/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      const json = await res.json();
-      if (json.status !== 'success') {
-        error.value = json.message;
+      const res = await api.put(`/productos/${id}`, data) as unknown as ApiResponse<void>;
+      if (res.status !== 'success') {
+        error.value = res.message;
         return;
       }
       await obtenerProductos();
-    } catch (e) {
-      error.value = 'Error al actualizar producto';
-      console.error(e);
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      error.value = err.message || 'Error al actualizar producto';
     } finally {
       loading.value = false;
     }
@@ -79,16 +95,15 @@ export function useProducto() {
     loading.value = true;
     error.value = null;
     try {
-      const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-      const json = await res.json();
-      if (json.status !== 'success') {
-        error.value = json.message;
+      const res = await api.delete(`/productos/${id}`) as unknown as ApiResponse<void>;
+      if (res.status !== 'success') {
+        error.value = res.message;
         return;
       }
       await obtenerProductos();
-    } catch (e) {
-      error.value = 'Error al eliminar producto';
-      console.error(e);
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      error.value = err.message || 'Error al eliminar producto';
     } finally {
       loading.value = false;
     }
