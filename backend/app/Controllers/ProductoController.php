@@ -2,15 +2,18 @@
 
 namespace App\Controllers;
 
+use App\Transformers\ProductoTransformer;
 use CodeIgniter\RESTful\ResourceController;
 
 class ProductoController extends ResourceController
 {
     protected $service;
+    protected $transformer;
 
     public function __construct()
     {
         $this->service = service('productoService');
+        $this->transformer = new ProductoTransformer();
     }
 
     public function index()
@@ -18,10 +21,12 @@ class ProductoController extends ResourceController
         $q = $this->request->getGet('q');
         $productos = $this->service->obtenerTodos($q);
 
+        $data = $this->transformer->transformCollection($productos);
+
         return $this->respond([
             "status" => "success",
             "message" => "Lista de productos",
-            "data" => $productos
+            "data" => $data
         ], 200);
     }
 
@@ -50,10 +55,12 @@ class ProductoController extends ResourceController
             return $this->failNotFound("Producto no encontrado");
         }
 
+        $data = $this->transformer->transform($producto);
+
         return $this->respond([
             "status" => "success",
             "message" => "Producto encontrado",
-            "data" => $producto
+            "data" => $data
         ], 200);
     }
 

@@ -41,18 +41,20 @@ Proyectos/
 ├── backend/
 │   ├── app/
 │   │   ├── Config/          # Configuraciones (Routes, Services, CORS)
-│   │   ├── Controllers/      # Controladores REST
-│   │   ├── Models/          # Modelos con hooks
+│   │   ├── Controllers/    # Controladores REST
+│   │   ├── Entities/       # Entities (representacion de datos)
+│   │   ├── Models/        # Modelos con hooks
 │   │   ├── Services/       # Logica de negocio
-│   │   ├── Database/       # Migrations + Seeds
-│   │   └── Validation/     # Reglas de validacion
-│   └── system/             # CodeIgniter core
+│   │   ├── Transformers/  # Transformadores (formato API)
+│   │   ├── Database/      # Migrations + Seeds
+│   │   └── Validation/    # Reglas de validacion
+│   └── system/            # CodeIgniter core
 │
 └── frontend/
     ├── src/
     │   ├── components/    # Componentes Vue
     │   ├── composables/    # Logica reutilizable
-    │   ├── types/         # TypeScript interfaces
+    │   ├── types/          # TypeScript interfaces
     │   └── styles/        # CSS global
     └── public/
 ```
@@ -71,12 +73,18 @@ Routes (app/Config/Routes.php)
 Filter (CORS) (app/Config/Filters.php)
     │
 Controller (ProductoController)
-    │
+    │         ↘
+    │          → Transformer (ProductoTransformer)
+    │                   ↙
 Service (ProductosService)
     │
-Model (ProductoModel)
+Model (ProductoModel + returnType = Entity)
     │
-Database
+afterFind hook → setEnOferta()
+    │
+Entity (ProductoEntity) + getEnOferta()
+    │
+JSON Response (formato controlado por Transformer)
 ```
 
 ### 1. Controller - Capa de Recepcion
@@ -84,19 +92,65 @@ Database
 **Archivo:** `backend/app/Controllers/ProductoController.php`
 
 ```php
+use App\Transformers\ProductoTransformer;
+use CodeIgniter\RESTful\ResourceController;
+
 class ProductoController extends ResourceController
 {
-    // Recibe requests HTTP
-    // Valida datos
-    // Delega a Service
-    // Retorna JSON
+    protected $service;
+    protected $transformer;
 
-    public function index()      // GET /productos
-    public function create()   // POST /productos
-    public function update()    // PUT /productos/:id
-    public function delete()    // DELETE /productos/:id
+    public function __construct()
+    {
+        $this->service = service('productoService');
+        $this->transformer = new ProductoTransformer();
+    }
+
+    public function index()
+    {
+        $q = $this->request->getGet('q');
+        $productos = $this->service->obtenerTodos($q);
+
+        // Transformar antes de responder
+        $data = $this->transformer->transformCollection($productos);
+
+        return $this->respond([
+            "status" => "success",
+            "message" => "Lista de productos",
+            "data" => $data
+        ], 200);
+    }
+
+    public function show($id = null)
+    {
+        $producto = $this->service->obtenerPorId($id);
+
+        if (!$producto) {
+            return $this->failNotFound("Producto no encontrado");
+        }
+
+        // Transformar antes de responder
+        $data = $this->transformer->transform($producto);
+
+        return $this->respond([
+            "status" => "success",
+            "message" => "Producto encontrado",
+            "data" => $data
+        ], 200);
+    }
 }
 ```
+
+**Herramientas CodeIgniter utilizadas:**
+
+- `ResourceController` - RESTful base controller
+- Transformer - Formato de salida
+  public function create() // POST /productos
+  public function update() // PUT /productos/:id
+  public function delete() // DELETE /productos/:id
+  }
+
+````
 
 **Herramientas CodeIgniter utilizadas:**
 
@@ -125,7 +179,7 @@ class ProductosService
     public function actualizar(int $id, array $data)
     public function eliminar(int $id)
 }
-```
+````
 
 **Herramientas CodeIgniter utilizadas:**
 
@@ -216,7 +270,72 @@ class ProductoModel extends Model
 - `useTimestamps` - created_at/updated_at automaticos
 - `allowedFields` - Whitelist de campos
 
-### 5. Routes - Endpoint Definitions
+### 5. Transformer - Formato de Salida
+
+**Archivo:** `backend/app/Transformers/ProductoTransformer.php`
+
+```php
+use App\Entities\ProductoEntity;
+
+class ProductoTransformer
+{
+    // Transforma un solo producto
+    public function transform(ProductoEntity $producto): array
+    {
+        return [
+            'id'            => $producto->id,
+            'nombre'        => $producto->nombre,
+            'precio_actual' => $producto->precio_actual,
+            'precio_objetivo'=> $producto->precio_objetivo,
+            'en_oferta'     => $producto->getEnOferta(),
+        ];
+    }
+
+    // Transforma una lista de productos
+    public function transformCollection(array $productos): array
+    {
+        return array_map(fn($p) => $this->transform($p), $productos);
+    }
+}
+```
+
+**Uso en Controller:**
+
+```php
+use App\Transformers\ProductoTransformer;
+
+class ProductoController extends ResourceController
+{
+    protected $service;
+    protected $transformer;
+
+    public function __construct()
+    {
+        $this->service = service('productoService');
+        $this->transformer = new ProductoTransformer();
+    }
+
+    public function index()
+    {
+        $productos = $this->service->obtenerTodos($q);
+        $data = $this->transformer->transformCollection($productos);
+
+        return $this->respond([
+            "status" => "success",
+            "message" => "Lista de productos",
+            "data" => $data
+        ], 200);
+    }
+}
+```
+
+**Herramientas utilizadas:**
+
+- `array_map` - Transformar lista
+- Oculta campos sensibles (created_at, updated_at, deleted_at)
+- Formato controlado para la API
+
+### 6. Routes - Endpoint Definitions
 
 **Archivo:** `backend/app/Config/Routes.php`
 
@@ -230,7 +349,7 @@ $routes->resource('productos', ['controller' => 'ProductoController']);
 // DELETE /productos/:id    → delete()
 ```
 
-### 6. Service Registration
+### 7. Service Registration
 
 **Archivo:** `backend/app/Config/Services.php`
 
@@ -250,7 +369,7 @@ public static function productoService($getShared = true)
 $this->service = service('productoService');
 ```
 
-### 6. CORS Configuration
+### 8. CORS Configuration
 
 **Archivo:** `backend/app/Config/Cors.php`
 
@@ -426,17 +545,18 @@ api.interceptors.response.use(
 
 ### CodeIgniter 4
 
-| Herramienta           | Uso                     |
-| --------------------- | ---------------------- |
-| `ResourceController`  | Base RESTful           |
-| `Model::afterFind`    | Hook campo calculado   |
-| `Entity`             | Objeto representan datos |
-| `$returnType`         | Tipo de retorno Model |
-| `model()` helper      | Inyeccion Model      |
-| `service()` helper   | Inyeccion Service    |
-| `$routes->resource()`| Auto-rutas REST       |
-| `useSoftDeletes`     | Soft delete           |
-| `useTimestamps`      | Fechas automaticas   |
+| Herramienta           | Uso                      |
+| --------------------- | ------------------------ |
+| `ResourceController`  | Base RESTful             |
+| `Model::afterFind`    | Hook campo calculado     |
+| `Entity`              | Objeto representan datos |
+| `Transformer`         | Formato de salida API    |
+| `$returnType`         | Tipo de retorno Model    |
+| `model()` helper      | Inyeccion Model          |
+| `service()` helper    | Inyeccion Service        |
+| `$routes->resource()` | Auto-rutas REST          |
+| `useSoftDeletes`      | Soft delete              |
+| `useTimestamps`       | Fechas automaticas       |
 
 ### Vue 3
 
@@ -507,9 +627,27 @@ $producto->en_oferta       // property con valor calculado
 ```
 
 **Beneficio:**
+
 - Logica de negocio junto a los datos
 - Tipos automaticos con $casts
 - Codigo mas legible y mantenible
+
+### Por que Transformers?
+
+```
+Sin Transformer          → Entity directa a JSON
+Con Transformer         → Formato controlado
+
+Antes:  return $entity           // expone todos los campos
+Ahora:  return transform($entity)  // solo campos que quieres
+```
+
+**Beneficio:**
+
+- Control total sobre la respuesta JSON
+- Ocultar campos sensibles (passwords, timestamps)
+- Formato independiente de la Entity
+- Desacoplamiento entre Entity y API
 
 ### Por que Composables?
 
