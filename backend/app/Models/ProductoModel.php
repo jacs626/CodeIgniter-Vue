@@ -8,6 +8,8 @@ class ProductoModel extends Model
 {
     protected $table = 'productos';
     protected $primaryKey = 'id';
+    protected $useSoftDeletes = true;
+    protected $deletedField  = 'deleted_at';
 
     protected $allowedFields = [
         'nombre',
