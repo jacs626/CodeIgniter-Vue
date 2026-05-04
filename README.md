@@ -145,20 +145,6 @@ class ProductoController extends ResourceController
 
 - `ResourceController` - RESTful base controller
 - Transformer - Formato de salida
-  public function create() // POST /productos
-  public function update() // PUT /productos/:id
-  public function delete() // DELETE /productos/:id
-  }
-
-````
-
-**Herramientas CodeIgniter utilizadas:**
-
-- `ResourceController` - RESTful base controller
-- `$this->request->getJSON()` - Parse JSON body
-- `$this->request->getGet('q')` - Query params
-- `$this->validate()` - Validacion integrada
-- `$this->respond()` - Respuesta JSON
 
 ### 2. Service - Logica de Negocio
 
@@ -169,17 +155,48 @@ class ProductosService
 {
     protected $model;
 
-    // Abstrae el acceso a datos
-    // Contiene logica de negocio
-    // No conoce HTTP
+    public function __construct()
+    {
+        $this->model = model('ProductoModel');
+    }
 
     public function obtenerTodos(?string $q = null)
+    {
+        if ($q) {
+            return $this->model->like('nombre', $q)->findAll();
+        }
+        return $this->model->findAll();
+    }
+
     public function obtenerPorId(int $id)
+    {
+        return $this->model->find($id);
+    }
+
     public function crear(array $data)
+    {
+        return $this->model->insert($data);
+    }
+
     public function actualizar(int $id, array $data)
+    {
+        if (!$this->model->find($id)) {
+            return null;
+        }
+        $this->model->update($id, $data);
+        return $this->model->find($id);
+    }
+
     public function eliminar(int $id)
+    {
+        if (!$this->model->find($id)) {
+            return null;
+        }
+        $this->model->delete($id);
+        return true;
+    }
 }
-````
+```
 
 **Herramientas CodeIgniter utilizadas:**
 
@@ -299,40 +316,10 @@ class ProductoTransformer
 }
 ```
 
-**Uso en Controller:**
-
-```php
-use App\Transformers\ProductoTransformer;
-
-class ProductoController extends ResourceController
-{
-    protected $service;
-    protected $transformer;
-
-    public function __construct()
-    {
-        $this->service = service('productoService');
-        $this->transformer = new ProductoTransformer();
-    }
-
-    public function index()
-    {
-        $productos = $this->service->obtenerTodos($q);
-        $data = $this->transformer->transformCollection($productos);
-
-        return $this->respond([
-            "status" => "success",
-            "message" => "Lista de productos",
-            "data" => $data
-        ], 200);
-    }
-}
-```
-
 **Herramientas utilizadas:**
 
 - `array_map` - Transformar lista
-- Oculta campos sensibles (created_at, updated_at, deleted_at)
+- Oculta campos sensibles
 - Formato controlado para la API
 
 ### 6. Routes - Endpoint Definitions
