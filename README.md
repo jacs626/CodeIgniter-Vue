@@ -10,7 +10,7 @@ Proyecto fullstack para gestion de productos con seguimiento de precios y oferta
 | **Build**    | Vite               | 8.x     |
 | **HTTP**     | Axios              | 1.16.x  |
 | **Backend**  | CodeIgniter        | 4.7.x   |
-| **DB**       | MySQL/MariaDB      | -       |
+| **DB**       | MySQL/MariaDB      | 9.7     |
 
 ---
 
@@ -132,22 +132,77 @@ class ProductosService
 - `model('ProductoModel')` - Inyeccion de Model via Service
 - Registro en `app/Config/Services.php`
 
-### 3. Model - Acceso a Datos
+### 3. Entity - Representacion de Datos
+
+**Archivo:** `backend/app/Entities/ProductoEntity.php`
+
+```php
+use CodeIgniter\Entity\Entity;
+
+class ProductoEntity extends Entity
+{
+    // Campos que vienen de la base de datos
+    protected $attributes = [
+        'id'            => null,
+        'nombre'        => null,
+        'precio_actual' => null,
+        'precio_objetivo'=> null,
+        'en_oferta'     => null,
+    ];
+
+    // Conversion automatica de tipos
+    protected $casts = [
+        'id'            => 'int',
+        'precio_actual' => 'float',
+        'precio_objetivo'=> 'float',
+        'en_oferta'     => 'bool',
+    ];
+
+    // Logica de negocio encapsulada
+    public function getEnOferta(): bool
+    {
+        return (float) ($this->precio_actual ?? 0) <= (float) ($this->precio_objetivo ?? 0);
+    }
+}
+```
+
+**Herramientas CodeIgniter utilizadas:**
+
+- `CodeIgniter\Entity\Entity` - Base Entity
+- `$attributes` - Mapeo de campos BD
+- `$casts` - Conversion automatica de tipos
+- `getEnOferta()` - Getter para logica de negocio
+
+### 4. Model - Acceso a Datos
 
 **Archivo:** `backend/app/Models/ProductoModel.php`
 
 ```php
+use App\Entities\ProductoEntity;
+
 class ProductoModel extends Model
 {
     protected $table = 'productos';
     protected $useSoftDeletes = true;
 
-    // Hook afterFind para campo calculado
+    // Retorna objetos Entity en lugar de arrays
+    protected $returnType = ProductoEntity::class;
+
+    // Hook que usa la logica de la Entity
     protected $afterFind = ['setEnOferta'];
 
     protected function setEnOferta(array $data): array
     {
-        // Calcula en_oferta = precio_actual <= precio_objetivo
+        $productos = is_array($data['data']) ? $data['data'] : [$data['data']];
+
+        foreach ($productos as $producto) {
+            if ($producto instanceof ProductoEntity) {
+                // Usa el metodo de la Entity
+                $producto->en_oferta = $producto->getEnOferta();
+            }
+        }
+
+        return $data;
     }
 }
 ```
@@ -155,12 +210,13 @@ class ProductoModel extends Model
 **Herramientas CodeIgniter utilizadas:**
 
 - `CodeIgniter\Model` - Base Model
+- `$returnType` - Tipo de retorno (Entity)
 - `$afterFind` - Hook despues de cada SELECT
 - `useSoftDeletes` - Soft delete automatico
-- `$useTimestamps` - created_at/updated_at automaticos
-- `$allowedFields` - Whitelist de campos
+- `useTimestamps` - created_at/updated_at automaticos
+- `allowedFields` - Whitelist de campos
 
-### 4. Routes - Endpoint Definitions
+### 5. Routes - Endpoint Definitions
 
 **Archivo:** `backend/app/Config/Routes.php`
 
@@ -174,7 +230,7 @@ $routes->resource('productos', ['controller' => 'ProductoController']);
 // DELETE /productos/:id    → delete()
 ```
 
-### 5. Service Registration
+### 6. Service Registration
 
 **Archivo:** `backend/app/Config/Services.php`
 
@@ -359,10 +415,10 @@ api.interceptors.response.use(
 | Feature             | Backend                | Frontend         |
 | ------------------- | ---------------------- | ---------------- |
 | CRUD productos      | Controller + Service   | Axios calls      |
-| Campo `en_oferta`   | Model hook `afterFind` | Visual 🔥       |
-| Busqueda por nombre | Query param `?q=`     | Watch + debounce |
-| Filtro ofertas      | -                     | `computed`       |
-| Soft deletes        | Model `useSoftDeletes` | DELETE endpoint |
+| Campo `en_oferta`   | Model hook `afterFind` | Visual 🔥        |
+| Busqueda por nombre | Query param `?q=`      | Watch + debounce |
+| Filtro ofertas      | -                      | `computed`       |
+| Soft deletes        | Model `useSoftDeletes` | DELETE endpoint  |
 
 ---
 
@@ -370,29 +426,31 @@ api.interceptors.response.use(
 
 ### CodeIgniter 4
 
-| Herramienta           | Uso                  |
-| --------------------- | -------------------- |
-| `ResourceController`  | Base RESTful         |
-| `Model::afterFind`    | Hook campo calculado |
-| `model()` helper      | Inyeccion Model     |
-| `service()` helper    | Inyeccion Service   |
-| `$routes->resource()` | Auto-rutas REST     |
-| `useSoftDeletes`      | Soft delete         |
-| `useTimestamps`      | Fechas automaticas |
+| Herramienta           | Uso                     |
+| --------------------- | ---------------------- |
+| `ResourceController`  | Base RESTful           |
+| `Model::afterFind`    | Hook campo calculado   |
+| `Entity`             | Objeto representan datos |
+| `$returnType`         | Tipo de retorno Model |
+| `model()` helper      | Inyeccion Model      |
+| `service()` helper   | Inyeccion Service    |
+| `$routes->resource()`| Auto-rutas REST       |
+| `useSoftDeletes`     | Soft delete           |
+| `useTimestamps`      | Fechas automaticas   |
 
 ### Vue 3
 
-| Herramienta     | Uso                    |
-| --------------- | --------------------- |
-| `ref()`         | Estado reactivo        |
-| `watch()`       | Reaccion a cambios    |
-| `computed()`   | Propiedades derivadas |
-| `defineProps()` | Props tipadas          |
-| `defineEmits()` | Eventos              |
-| `v-model`      | Two-way binding       |
-| `v-if`        | Renderizado condicional |
-| `v-for`       | Renderizado de listas |
-| `:key`         | Identificador unico   |
+| Herramienta     | Uso                     |
+| --------------- | ----------------------- |
+| `ref()`         | Estado reactivo         |
+| `watch()`       | Reaccion a cambios      |
+| `computed()`    | Propiedades derivadas   |
+| `defineProps()` | Props tipadas           |
+| `defineEmits()` | Eventos                 |
+| `v-model`       | Two-way binding         |
+| `v-if`          | Renderizado condicional |
+| `v-for`         | Renderizado de listas   |
+| `:key`          | Identificador unico     |
 
 ---
 
@@ -436,6 +494,22 @@ protected $afterFind = ['setEnOferta'];
 ```
 
 **Beneficio:** El campo siempre existe en la respuesta API.
+
+### Por que Entities?
+
+```
+Array          → Solo datos (clave-valor)
+Entity         → Datos + metodos (logica encapsulada)
+
+$producto['en_oferta']     // array
+$producto->getEnOferta()   // entity con logica
+$producto->en_oferta       // property con valor calculado
+```
+
+**Beneficio:**
+- Logica de negocio junto a los datos
+- Tipos automaticos con $casts
+- Codigo mas legible y mantenible
 
 ### Por que Composables?
 

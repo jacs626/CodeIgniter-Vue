@@ -46,8 +46,8 @@ class ProductoController extends ResourceController
     {
         $producto = $this->service->obtenerPorId($id);
 
-        if (!$this->validate('producto')) {
-            return $this->failValidationErrors($this->validator->getErrors());
+        if (!$producto) {
+            return $this->failNotFound("Producto no encontrado");
         }
 
         return $this->respond([

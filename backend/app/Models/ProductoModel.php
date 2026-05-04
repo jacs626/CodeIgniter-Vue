@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Entities\ProductoEntity;
 use CodeIgniter\Model;
 
 class ProductoModel extends Model
@@ -10,6 +11,8 @@ class ProductoModel extends Model
     protected $primaryKey = 'id';
     protected $useSoftDeletes = true;
     protected $deletedField  = 'deleted_at';
+
+    protected $returnType = ProductoEntity::class;
 
     protected $allowedFields = [
         'nombre',
@@ -28,22 +31,13 @@ class ProductoModel extends Model
             return $data;
         }
 
-        if (!is_array($data['data'])) {
-            return $data;
-        }
+        $productos = is_array($data['data']) ? $data['data'] : [$data['data']];
 
-        $productos = is_array($data['data'][0] ?? null) ? $data['data'] : [$data['data']];
-
-        foreach ($productos as &$producto) {
-            if (!is_array($producto)) {
-                continue;
+        foreach ($productos as $producto) {
+            if ($producto instanceof ProductoEntity) {
+                $producto->en_oferta = $producto->getEnOferta();
             }
-            $precioActual = (float) ($producto['precio_actual'] ?? 0);
-            $precioObjetivo = (float) ($producto['precio_objetivo'] ?? 0);
-            $producto['en_oferta'] = $precioActual <= $precioObjetivo;
         }
-
-        $data['data'] = is_array($data['data'][0] ?? null) ? $productos : $productos[0];
 
         return $data;
     }
