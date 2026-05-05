@@ -4,7 +4,7 @@ namespace App\Validation;
 
 class CustomRules
 {
-public function precioLogico(string $value, string $params, array $data): bool
+public function precioLogico(int $value, string $params, array $data): bool
 {
     if (!isset($data['precio_objetivo'])) {
         return true;
