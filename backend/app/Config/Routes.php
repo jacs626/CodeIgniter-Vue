@@ -15,9 +15,13 @@ $routes->options('productos/(:num)', function () {
 });
 
 $routes->get('productos', 'ProductoController::index');
+$routes->get('productos/new', 'ProductoController::new');
 $routes->get('productos/(:num)', 'ProductoController::show/$1');
+$routes->get('productos/(:num)/edit', 'ProductoController::edit/$1');
 
-$routes->post('productos', 'ProductoController::create', ['filter' => 'auth']);
-$routes->put('productos/(:num)', 'ProductoController::update/$1', ['filter' => 'auth']);
-$routes->delete('productos/(:num)', 'ProductoController::delete/$1', ['filter' => 'auth']);
+$routes->resource('productos', [
+    'controller' => 'ProductoController',
+    'filter' => 'auth',
+    'except' => ['index', 'show', 'new', 'edit']
+]);
 
