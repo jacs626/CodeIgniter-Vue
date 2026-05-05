@@ -19,24 +19,55 @@ class ProductoController extends ResourceController
     public function index()
     {
         $q = $this->request->getGet('q');
-        $page = (int) $this->request->getGet('page') ?: 1;
-        $perPage = 10;
+        $perPage = (int) ($this->request->getGet('perPage') ?: 10);
+        $perPage = $perPage > 0 ? $perPage : 10;
 
-        $result = $this->service->obtenerTodos($q, $page, $perPage);
+        $result = $this->service->obtenerTodos($q, $perPage);
 
+        $pager = $result['pager'];
         $productos = $this->transformer->transformCollection($result['data']);
+
+        $currentPage = $pager->getCurrentPage('default');
+        $pageCount = $pager->getPageCount('default');
+        $baseUrl = base_url('productos') . '?q=' . ($q ?? '') . '&perPage=' . $perPage;
 
         return $this->respond([
             "status" => "success",
             "message" => "Lista de productos",
             "data" => $productos,
             "meta" => [
-                "currentPage" => $result['pagination']['currentPage'],
-                "perPage" => $result['pagination']['perPage'],
-                "total" => $result['pagination']['total'],
-                "lastPage" => $result['pagination']['lastPage']
+                "currentPage" => $currentPage,
+                "perPage" => $pager->getPerPage('default'),
+                "total" => $pager->getTotal('default'),
+                "pageCount" => $pageCount,
+                "links" => [
+                    "first" => $baseUrl . '&page=1',
+                    "last" => $baseUrl . '&page=' . $pageCount,
+                    "prev" => $currentPage > 1 ? $baseUrl . '&page=' . ($currentPage - 1) : null,
+                    "next" => $currentPage < $pageCount ? $baseUrl . '&page=' . ($currentPage + 1) : null,
+                    "pages" => $this->buildPageLinks($baseUrl, $currentPage, $pageCount)
+                ]
             ]
         ], 200);
+    }
+
+    private function buildPageLinks(string $baseUrl, int $currentPage, int $pageCount): array
+    {
+        $pages = [];
+        $delta = 2;
+
+        $start = max(1, $currentPage - $delta);
+        $end = min($pageCount, $currentPage + $delta);
+
+        for ($i = $start; $i <= $end; $i++) {
+            $pages[] = [
+                "page" => $i,
+                "url" => $baseUrl . '&page=' . $i,
+                "isActive" => $i === $currentPage
+            ];
+        }
+
+        return $pages;
     }
 
     public function create()

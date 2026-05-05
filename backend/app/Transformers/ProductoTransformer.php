@@ -2,8 +2,6 @@
 
 namespace App\Transformers;
 
-use App\Entities\ProductoEntity;
-
 class ProductoTransformer
 {
     public function transform($producto): array

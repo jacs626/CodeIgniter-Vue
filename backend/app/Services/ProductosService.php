@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use CodeIgniter\Pager\Pager;
+
 class ProductosService
 {
     protected $model;
@@ -11,41 +13,9 @@ class ProductosService
         $this->model = model('ProductoModel');
     }
 
-    public function obtenerTodos(?string $q = null, int $page = 1, int $perPage = 10): array
+    public function obtenerTodos(?string $q = null, int $perPage = 10): array
     {
-        $db = \Config\Database::connect();
-        
-        $totalQuery = $db->table('productos')
-            ->where('deleted_at', null);
-        
-        if ($q) {
-            $totalQuery->like('nombre', $q);
-        }
-        
-        $total = $totalQuery->countAllResults();
-
-        $builder = $db->table('productos')
-            ->where('deleted_at', null);
-        
-        if ($q) {
-            $builder->like('nombre', $q);
-        }
-
-        $offset = ($page - 1) * $perPage;
-        $productos = $builder->orderBy('id', 'ASC')
-            ->limit($perPage, $offset)
-            ->get()
-            ->getResult();
-
-        return [
-            'data' => $productos,
-            'pagination' => [
-                'currentPage' => $page,
-                'perPage' => $perPage,
-                'total' => $total,
-                'lastPage' => (int) ceil($total / $perPage),
-            ]
-        ];
+        return $this->model->paginateWithSearch($q, $perPage);
     }
 
     public function obtenerPorId(int $id)

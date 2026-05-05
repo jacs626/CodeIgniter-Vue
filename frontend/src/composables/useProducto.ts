@@ -52,12 +52,12 @@ export function useProducto() {
           q: searchQuery.value || undefined,
           page: currentPage.value
         }
-      }) as ApiResponse<Producto[]> & { meta?: { currentPage: number; lastPage: number } };
+      }) as ApiResponse<Producto[]> & { meta?: { currentPage: number; pageCount: number } };
       if (res.status === 'success') {
         productos.value = res.data;
         if (res.meta) {
           currentPage.value = res.meta.currentPage;
-          totalPages.value = res.meta.lastPage;
+          totalPages.value = res.meta.pageCount;
         }
       } else {
         error.value = res.message;
