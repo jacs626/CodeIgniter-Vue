@@ -1,8 +1,8 @@
 # Sistema de Seguimiento de Precios
 
-Proyecto fullstack para gestión de productos con seguimiento de precios y detección de ofertas.
+Proyecto fullstack para gestión de productos con seguimiento de precios, detección de ofertas y optimización mediante cache.
 
-El objetivo del proyecto es aprender arquitectura moderna con CodeIgniter 4 + Vue 3, aplicando separación de responsabilidades real entre capas.
+El objetivo del proyecto es aprender arquitectura moderna con CodeIgniter 4 + Vue 3, aplicando separación de responsabilidades real entre capas, además de implementar un sistema de observabilidad con logs de request, SQL y cache.
 
 ---
 
@@ -23,7 +23,7 @@ Esta lógica vive en el backend (Entity), no en el frontend.
 cd backend  
 php spark serve
 
-# http://localhost:8080
+http://localhost:8080
 
 ### Frontend
 
@@ -31,330 +31,238 @@ cd frontend
 npm install  
 npm run dev
 
-# http://localhost:5173
+http://localhost:5173
 
 ---
 
 ## 🏗️ Arquitectura general
 
 1. HTTP Request
-2. Controller
-3. Service (lógica de negocio)
-4. Model (acceso a datos + filtros + paginación)
-5. Entity (reglas de dominio)
-6. Transformer (formato API)
-7. JSON Response
+2. Filter (RequestLogFilter + Trace ID)
+3. Controller
+4. Service (lógica de negocio + cache)
+5. Model (acceso a datos SQL)
+6. Entity (reglas de dominio)
+7. Transformer (formato API)
+8. JSON Response
 
 ---
 
 # 🔙 BACKEND (CodeIgniter 4)
 
-## Controller (ProductoController)
+---
 
-class ProductoController extends ResourceController
+## 📡 Observabilidad del sistema (LOGS)
+
+El sistema incluye logging estructurado en `writable/logs`:
+
+### 🧾 Request / Response logging
+
+- Método HTTP
+- Endpoint
+- Status code
+- Timestamp
+- TRACE ID por request
+
+---
+
+### 🧠 Cache logging
+
+El sistema registra:
+
+- CACHE HIT (respuesta desde cache, sin SQL)
+- CACHE MISS (ejecución de SQL)
+- CACHE SAVE (guardado con TTL)
+- CACHE INVALIDATED (cuando se crea/actualiza/elimina producto)
+
+Ejemplo:
+
+CACHE | HIT | key=productos_v2_xxx  
+CACHE | MISS | key=productos_v2_xxx  
+CACHE | SAVE | ttl=60s  
+CACHE | INVALIDATED | oldVersion=1 → newVersion=2
+
+---
+
+### 🧩 SQL logging
+
+Se registran todas las consultas:
+
+- Tiempo de ejecución (ms)
+- Query ejecutada
+- SELECT / INSERT / UPDATE / DELETE
+
+Ejemplo:
+
+SQL | time=0.23ms | SELECT \* FROM productos
+
+---
+
+### 🔍 TRACE ID
+
+Cada request genera un identificador único:
+
+TRACE=651f565129550c93
+
+Esto permite rastrear todo el flujo:
+
+REQUEST → CACHE → SQL → RESPONSE
+
+---
+
+## 🧠 Controller (ProductoController)
+
+Responsable de:
+
+- Recibir requests
+- Validar input
+- Delegar al service
+- Formatear respuesta API
+
+---
+
+## ⚙️ Service (ProductosService)
 
 Herramientas usadas:
 
-- ResourceController → CRUD REST automático
-- service('productoService') → inyección de servicio
-- respond() → respuesta HTTP estándar
-- failNotFound() / failValidationErrors() → manejo de errores
-- validation service → validación de datos
+- model('ProductoModel')
+- service('cache')
 
-Rol: recibe requests, valida datos y delega lógica.
+Responsabilidades:
 
----
-
-## Service (ProductosService)
-
-Herramientas usadas:
-
-- model('ProductoModel') → acceso al modelo
-
-Rol:
-
-- crear productos
-- actualizar productos
-- eliminar productos
-- buscar productos
+- Manejo de cache (GET / SAVE / INVALIDATE)
+- Generación de cache keys
+- Control de versión de cache
+- Lógica de negocio de productos
 
 ---
 
-## Model (ProductoModel)
+### 🧠 Sistema de cache
 
-protected $returnType = ProductoEntity::class;
+El sistema implementa:
 
-Herramientas CodeIgniter usadas:
-
-- Model → acceso a base de datos
-- Query Builder → filtros dinámicos (LIKE, WHERE)
-- allowedFields → campos permitidos
-- useSoftDeletes → eliminación lógica
-- returnType → retorna Entity
-
-Ejemplo filtros:
-
-```php
-if ($search) {
-    $builder->like('nombre', $search);
-}
-
-if ($soloOfertas) {
-    $builder->where('precio_actual <= precio_objetivo');
-}
-```
-
-Rol: acceso a datos + construcción de consultas.
+- Cache por filtros (query + paginación + ofertas)
+- TTL de 60 segundos
+- Versionado de cache (evita invalidaciones masivas costosas)
+- Invalidación automática al crear/actualizar/eliminar
 
 ---
 
-## Entity (ProductoEntity)
+## 🗄️ Model (ProductoModel)
+
+Responsable de acceso a base de datos.
+
+Incluye:
+
+- Soft deletes
+- Query builder dinámico
+- Filtros por búsqueda
+- Filtro de ofertas
+- Paginación manual optimizada
+
+---
+
+## 🧠 Entity (ProductoEntity)
 
 class ProductoEntity extends Entity
 
-Herramientas usadas:
+Regla de negocio principal:
 
-- $attributes → estructura del objeto
-- $casts → conversión automática de tipos
-
-Lógica de negocio:
-
-```php
-public function getEnOferta(): bool
-{
-    return (float) $this->precio_actual <= (float) $this->precio_objetivo;
+public function getEnOferta(): bool  
+{  
+ return (float) $this->precio_actual <= (float) $this->precio_objetivo;  
 }
-```
 
-Rol:
+Responsabilidad:
 
-- contiene reglas del dominio
-- representa el producto como objeto real
-
----
-
-## Transformer (ProductoTransformer)
-
-Herramientas usadas:
-
-- transform() → Entity a array
-- array_map() → listas
-
-Ejemplo:
-
-```php
-return [
-    'id' => $producto->id,
-    'nombre' => $producto->nombre,
-    'precio_actual' => $producto->precio_actual,
-    'precio_objetivo' => $producto->precio_objetivo,
-    'en_oferta' => $producto->getEnOferta(),
-];
-```
-
-Rol: controla la forma final del JSON de la API.
+- Contiene lógica de dominio
+- No depende del frontend
+- Representa entidad real del sistema
 
 ---
 
-## ✅ Validación (CodeIgniter 4)
+## 🔄 Transformer (ProductoTransformer)
 
-La validación está centralizada en:
+Responsable de:
 
-app/Config/Validation.php
-
-Se separa en:
-
-- producto_create
-- producto_update
-
-Herramientas usadas:
-
-- required
-- decimal
-- greater_than
-- min_length / max_length
-- permit_empty (para updates parciales)
+- Convertir Entity → JSON API
+- Evitar exposición de datos innecesarios
+- Mantener contrato de API limpio
 
 ---
 
-## 🧩 Custom Rule
-
-Archivo:
-
-app/Validation/CustomRules.php
-
-```php
-public function precioLogico(string $value, string $params, array $data): bool
-{
-    if (!isset($data['precio_objetivo'])) {
-        return true;
-    }
-
-    return (float) $value <= ((float) $data['precio_objetivo'] * 10);
-}
-```
-
-Rol:
-
-- valida consistencia entre campos
-- evita valores irreales
+## 🌐 FRONTEND (Vue 3 + TypeScript)
 
 ---
 
-## 🔍 Filtros y búsqueda
+## 🧩 Composables (useProducto)
 
-Los filtros se ejecutan en el backend:
+Uso de:
 
-- búsqueda por nombre (LIKE)
-- filtro de ofertas (precio_actual <= precio_objetivo)
+- ref()
+- computed()
+- watch()
 
-Antes:
+Responsabilidad:
 
-Frontend filtraba datos
-
-Ahora:
-
-Backend filtra → frontend solo renderiza
-
----
-
-## 📄 Paginación
-
-Se implementó paginación en backend con metadata:
-
-```json
-{
-  "currentPage": 1,
-  "perPage": 10,
-  "total": 100,
-  "pageCount": 10
-}
-```
-
-Rol:
-
-- evitar inconsistencias
-- soportar filtros correctamente
+- Estado centralizado de productos
+- Reutilización de lógica
+- Manejo de requests
 
 ---
 
-## Routes
+## 🎨 Componentes
 
-$routes->resource('productos');
+### ProductList.vue
 
-Genera:
-
-- GET /productos
-- GET /productos/{id}
-- POST /productos
-- PUT /productos/{id}
-- DELETE /productos/{id}
-
----
-
-# 🌐 FRONTEND (Vue 3 + TypeScript)
-
-## Composables (useProducto)
-
-Herramientas Vue usadas:
-
-- ref() → estado reactivo
-- watch() → cambios
-- axios → conexión API
-
-Ejemplo:
-
-```ts
-const productos = ref([]);
-const searchQuery = ref("");
-
-watch(searchQuery, () => {
-  setTimeout(() => {
-    obtenerProductos();
-  }, 300);
-});
-```
-
-Rol: centraliza lógica y llamadas al backend.
-
----
-
-## Componentes
-
-ProductList.vue:
-
-- defineProps()
-- v-model
 - v-for
 - v-if
+- computed
+- props
 
-ProductCard.vue:
+### ProductCard.vue
 
 - props
-- v-if
-- :class
+- render condicional
+- bindings dinámicos
 
 ---
 
-## Axios
+## 🌐 Axios
 
-```ts
-const api = axios.create({
-  baseURL: "http://localhost:8080",
+const api = axios.create({  
+ baseURL: "http://localhost:8080"  
 });
-```
 
 ---
 
-# 🧩 ARQUITECTURA
+## 🧠 SISTEMA COMPLETO
 
 Controller → HTTP  
-Service → lógica de negocio  
-Model → datos + queries  
+Service → Cache + lógica  
+Model → SQL  
 Entity → dominio  
 Transformer → API
 
 ---
 
-## Entity vs Model
+## ⚡ OPTIMIZACIONES IMPLEMENTADAS
 
-Model → datos  
-Entity → lógica
-
-La lógica NO está en frontend ni en controller.
-
----
-
-## Validación
-
-- centralizada en Config
-- reutilizable
-- soporta reglas complejas
+✔ Cache con TTL (60s)  
+✔ Cache versionado  
+✔ Evita queries repetidas  
+✔ SQL logging con tiempo de ejecución  
+✔ Request tracing con ID único  
+✔ Invalidación automática de cache
 
 ---
 
-## Transformer
+## 🧠 APRENDIZAJES
 
-- controla JSON
-- evita exponer datos innecesarios
-- desacopla API
-
----
-
-## Vue Composables
-
-- reutilización de lógica
-- estado centralizado
-- evita duplicación
-
----
-
-# 🧠 APRENDIZAJES
-
-- arquitectura por capas real
-- separación de responsabilidades
-- Entity como dominio
-- validación avanzada en backend
-- filtros en SQL en lugar de frontend
-- manejo de estado reactivo con ref/watch
-- evitar lógica duplicada frontend/backend
+- Arquitectura por capas real
+- Separación de responsabilidades
+- Cache strategy con invalidación inteligente
+- Observabilidad backend (logs completos)
+- Optimización de queries SQL
+- Vue 3 Composition API
+- Estado reactivo con composables

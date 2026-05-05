@@ -53,3 +53,10 @@ Events::on('pre_system', static function (): void {
         }
     }
 });
+
+Events::on('DBQuery', static function ($query): void {
+    $time = round($query->getDuration() * 1000, 2);
+    $sql = substr($query->getQuery(), 0, 120);
+    
+    log_message('info', "[SQL] time={$time}ms | {$sql}");
+});

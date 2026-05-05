@@ -23,13 +23,13 @@ class ProductoController extends ResourceController
         $soloOfertas = (bool) $this->request->getGet('soloOfertas');
         $perPage = (int) ($this->request->getGet('perPage') ?: 10);
         $perPage = $perPage > 0 ? $perPage : 10;
+        $currentPage = (int) ($this->request->getGet('page') ?? 1);
 
-        $result = $this->service->obtenerTodos($q, $soloOfertas, $perPage);
+        $result = $this->service->obtenerTodos($q, $soloOfertas, $perPage, $currentPage);
 
         $pager = $result['pager'];
         $productos = $this->transformer->transformCollection($result['data']);
 
-        $currentPage = (int) ($this->request->getGet('page') ?? 1);
         $pageCount = $pager->getPageCount('default');
         $baseUrl = base_url('productos') . '?q=' . ($q ?? '') . '&perPage=' . $perPage;
 
