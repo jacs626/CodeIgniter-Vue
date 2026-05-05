@@ -13,9 +13,6 @@ $routes->options('productos', function () {
 $routes->options('productos/(:num)', function () {
     return service('response')->setStatusCode(200);
 });
-$routes->resource('productos', [
-    'controller' => 'ProductoController',
-]);
 
 $routes->get('productos', 'ProductoController::index');
 $routes->get('productos/(:num)', 'ProductoController::show/$1');
