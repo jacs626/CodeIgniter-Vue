@@ -20,15 +20,15 @@ Esta lógica vive en el backend (Entity), no en el frontend.
 
 ### Backend
 
-cd backend
+cd backend  
 php spark serve
 
 # http://localhost:8080
 
 ### Frontend
 
-cd frontend
-npm install
+cd frontend  
+npm install  
 npm run dev
 
 # http://localhost:5173
@@ -40,7 +40,7 @@ npm run dev
 1. HTTP Request
 2. Controller
 3. Service (lógica de negocio)
-4. Model (acceso a datos)
+4. Model (acceso a datos + filtros + paginación)
 5. Entity (reglas de dominio)
 6. Transformer (formato API)
 7. JSON Response
@@ -59,8 +59,9 @@ Herramientas usadas:
 - service('productoService') → inyección de servicio
 - respond() → respuesta HTTP estándar
 - failNotFound() / failValidationErrors() → manejo de errores
+- validation service → validación de datos
 
-Rol: solo recibe requests y delega lógica.
+Rol: recibe requests, valida datos y delega lógica.
 
 ---
 
@@ -86,11 +87,24 @@ protected $returnType = ProductoEntity::class;
 Herramientas CodeIgniter usadas:
 
 - Model → acceso a base de datos
+- Query Builder → filtros dinámicos (LIKE, WHERE)
 - allowedFields → campos permitidos
 - useSoftDeletes → eliminación lógica
 - returnType → retorna Entity
 
-Rol: solo datos, sin lógica de negocio.
+Ejemplo filtros:
+
+```php
+if ($search) {
+    $builder->like('nombre', $search);
+}
+
+if ($soloOfertas) {
+    $builder->where('precio_actual <= precio_objetivo');
+}
+```
+
+Rol: acceso a datos + construcción de consultas.
 
 ---
 
@@ -105,10 +119,12 @@ Herramientas usadas:
 
 Lógica de negocio:
 
+```php
 public function getEnOferta(): bool
 {
-return (float) $this->precio_actual <= (float) $this->precio_objetivo;
+    return (float) $this->precio_actual <= (float) $this->precio_objetivo;
 }
+```
 
 Rol:
 
@@ -126,16 +142,99 @@ Herramientas usadas:
 
 Ejemplo:
 
+```php
 return [
-'id' => $producto->id,
-'nombre' => $producto->nombre,
-'precio_actual' => $producto->precio_actual,
-'precio_objetivo' => $producto->precio_objetivo,
-'en_oferta' => $producto->getEnOferta(),
+    'id' => $producto->id,
+    'nombre' => $producto->nombre,
+    'precio_actual' => $producto->precio_actual,
+    'precio_objetivo' => $producto->precio_objetivo,
+    'en_oferta' => $producto->getEnOferta(),
 ];
+```
+
+Rol: controla la forma final del JSON de la API.
+
+---
+
+## ✅ Validación (CodeIgniter 4)
+
+La validación está centralizada en:
+
+app/Config/Validation.php
+
+Se separa en:
+
+- producto_create
+- producto_update
+
+Herramientas usadas:
+
+- required
+- decimal
+- greater_than
+- min_length / max_length
+- permit_empty (para updates parciales)
+
+---
+
+## 🧩 Custom Rule
+
+Archivo:
+
+app/Validation/CustomRules.php
+
+```php
+public function precioLogico(string $value, string $params, array $data): bool
+{
+    if (!isset($data['precio_objetivo'])) {
+        return true;
+    }
+
+    return (float) $value <= ((float) $data['precio_objetivo'] * 10);
+}
+```
 
 Rol:
-controla la forma final del JSON de la API
+
+- valida consistencia entre campos
+- evita valores irreales
+
+---
+
+## 🔍 Filtros y búsqueda
+
+Los filtros se ejecutan en el backend:
+
+- búsqueda por nombre (LIKE)
+- filtro de ofertas (precio_actual <= precio_objetivo)
+
+Antes:
+
+Frontend filtraba datos
+
+Ahora:
+
+Backend filtra → frontend solo renderiza
+
+---
+
+## 📄 Paginación
+
+Se implementó paginación en backend con metadata:
+
+```json
+{
+  "currentPage": 1,
+  "perPage": 10,
+  "total": 100,
+  "pageCount": 10
+}
+```
+
+Rol:
+
+- evitar inconsistencias
+- soportar filtros correctamente
 
 ---
 
@@ -161,10 +260,22 @@ Herramientas Vue usadas:
 
 - ref() → estado reactivo
 - watch() → cambios
-- computed() → datos derivados
+- axios → conexión API
 
-Rol:
-centraliza lógica de productos
+Ejemplo:
+
+```ts
+const productos = ref([]);
+const searchQuery = ref("");
+
+watch(searchQuery, () => {
+  setTimeout(() => {
+    obtenerProductos();
+  }, 300);
+});
+```
+
+Rol: centraliza lógica y llamadas al backend.
 
 ---
 
@@ -176,7 +287,6 @@ ProductList.vue:
 - v-model
 - v-for
 - v-if
-- computed()
 
 ProductCard.vue:
 
@@ -188,9 +298,11 @@ ProductCard.vue:
 
 ## Axios
 
+```ts
 const api = axios.create({
-baseURL: "http://localhost:8080",
+  baseURL: "http://localhost:8080",
 });
+```
 
 ---
 
@@ -198,7 +310,7 @@ baseURL: "http://localhost:8080",
 
 Controller → HTTP  
 Service → lógica de negocio  
-Model → datos  
+Model → datos + queries  
 Entity → dominio  
 Transformer → API
 
@@ -210,6 +322,14 @@ Model → datos
 Entity → lógica
 
 La lógica NO está en frontend ni en controller.
+
+---
+
+## Validación
+
+- centralizada en Config
+- reutilizable
+- soporta reglas complejas
 
 ---
 
@@ -234,6 +354,7 @@ La lógica NO está en frontend ni en controller.
 - arquitectura por capas real
 - separación de responsabilidades
 - Entity como dominio
-- transformación de API
-- Vue 3 Composition API
-- estado reactivo con ref/watch/computed
+- validación avanzada en backend
+- filtros en SQL en lugar de frontend
+- manejo de estado reactivo con ref/watch
+- evitar lógica duplicada frontend/backend
