@@ -15,6 +15,16 @@ const api = axios.create({
   },
 });
 
+api.interceptors.request.use(
+  (config) => {
+    config.headers.Authorization = 'Bearer mysecrettoken123';
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  },
+);
+
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
