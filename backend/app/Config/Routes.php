@@ -17,3 +17,10 @@ $routes->resource('productos', [
     'controller' => 'ProductoController',
 ]);
 
+$routes->get('productos', 'ProductoController::index');
+$routes->get('productos/(:num)', 'ProductoController::show/$1');
+
+$routes->post('productos', 'ProductoController::create', ['filter' => 'auth']);
+$routes->put('productos/(:num)', 'ProductoController::update/$1', ['filter' => 'auth']);
+$routes->delete('productos/(:num)', 'ProductoController::delete/$1', ['filter' => 'auth']);
+

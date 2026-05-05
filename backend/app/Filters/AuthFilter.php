@@ -14,11 +14,7 @@ class AuthFilter implements FilterInterface
     {
         $method = $request->getMethod();
 
-        if ($method === 'OPTIONS') {
-            return null;
-        }
-
-        if ($method === 'GET') {
+        if ($method === 'OPTIONS' || $method === 'GET') {
             return null;
         }
 

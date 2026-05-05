@@ -2,6 +2,7 @@
 
 namespace Config;
 
+use App\Validation\CustomRules;
 use CodeIgniter\Config\BaseConfig;
 use CodeIgniter\Validation\StrictRules\CreditCardRules;
 use CodeIgniter\Validation\StrictRules\FileRules;
@@ -10,41 +11,69 @@ use CodeIgniter\Validation\StrictRules\Rules;
 
 class Validation extends BaseConfig
 {
-    // --------------------------------------------------------------------
-    // Setup
-    // --------------------------------------------------------------------
-
-    /**
-     * Stores the classes that contain the
-     * rules that are available.
-     *
-     * @var list<string>
-     */
     public array $ruleSets = [
         Rules::class,
         FormatRules::class,
         FileRules::class,
         CreditCardRules::class,
+        CustomRules::class,
     ];
 
-    public $producto = [
-        'nombre' => 'required|min_length[3]',
-        'precio_actual' => 'required|decimal',
-        'precio_objetivo' => 'required|decimal',
+    public array $producto_create = [
+        'nombre' => [
+            'label' => 'Nombre',
+            'rules' => 'required|min_length[3]|max_length[100]',
+            'errors' => [
+                'required' => 'El campo {field} es obligatorio',
+                'min_length' => 'El campo {field} debe tener al menos 3 caracteres',
+                'max_length' => 'El campo {field} debe tener máximo 100 caracteres'
+            ]
+        ],
+        'precio_actual' => [
+            'label' => 'Precio Actual',
+            'rules' => 'required|decimal|greater_than[0]',
+            'errors' => [
+                'required' => 'El campo {field} es obligatorio',
+                'greater_than' => 'El campo {field} debe ser mayor a 0'
+            ]
+        ],
+        'precio_objetivo' => [
+            'label' => 'Precio Objetivo',
+            'rules' => 'required|decimal|greater_than[0]',
+            'errors' => [
+                'required' => 'El campo {field} es obligatorio',
+                'greater_than' => 'El campo {field} debe ser mayor a 0'
+            ]
+        ],
     ];
 
-    /**
-     * Specifies the views that are used to display the
-     * errors.
-     *
-     * @var array<string, string>
-     */
+    public array $producto_update = [
+        'nombre' => [
+            'label' => 'Nombre',
+            'rules' => 'min_length[3]|max_length[100]',
+            'errors' => [
+                'min_length' => 'El campo {field} debe tener al menos 3 caracteres',
+                'max_length' => 'El campo {field} debe tener máximo 100 caracteres'
+            ]
+        ],
+        'precio_actual' => [
+            'label' => 'Precio Actual',
+            'rules' => 'decimal|greater_than[0]',
+            'errors' => [
+                'greater_than' => 'El campo {field} debe ser mayor a 0'
+            ]
+        ],
+        'precio_objetivo' => [
+            'label' => 'Precio Objetivo',
+            'rules' => 'decimal|greater_than[0]',
+            'errors' => [
+                'greater_than' => 'El campo {field} debe ser mayor a 0'
+            ]
+        ],
+    ];
+
     public array $templates = [
         'list'   => 'CodeIgniter\Validation\Views\list',
         'single' => 'CodeIgniter\Validation\Views\single',
     ];
-
-    // --------------------------------------------------------------------
-    // Rules
-    // --------------------------------------------------------------------
 }

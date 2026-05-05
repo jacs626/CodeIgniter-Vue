@@ -41,12 +41,7 @@ class Filters extends BaseFilters
         'after' => [],
     ];
 
-    public array $methods = [
-        'POST' => ['auth'],
-        'PUT' => ['auth'],
-        'DELETE' => ['auth'],
-        'PATCH' => ['auth'],
-    ];
+    public array $methods = [];
 
     public array $filters = [
         'requestlog' => [

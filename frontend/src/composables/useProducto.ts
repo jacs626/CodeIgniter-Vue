@@ -101,15 +101,19 @@ export function useProducto() {
     loading.value = true;
     error.value = null;
     try {
-      const res = await api.post('/productos', data) as ApiResponse<void>;
+      const res = await api.post('/productos', data) as ApiResponse<void> & { messages?: Record<string, string> };
       if (res.status !== 'success') {
-        error.value = res.message;
+        error.value = res.messages 
+          ? Object.values(res.messages).join(', ') 
+          : res.message;
         return;
       }
       await obtenerProductos();
     } catch (e: unknown) {
-      const err = e as { message?: string };
-      error.value = err.message || 'Error al crear producto';
+      const err = e as { messages?: Record<string, string>; message?: string };
+      error.value = err.messages 
+        ? Object.values(err.messages).join(', ') 
+        : err.message || 'Error al crear producto';
     } finally {
       loading.value = false;
     }
@@ -119,15 +123,19 @@ export function useProducto() {
     loading.value = true;
     error.value = null;
     try {
-      const res = await api.put(`/productos/${id}`, data) as ApiResponse<void>;
+      const res = await api.put(`/productos/${id}`, data) as ApiResponse<void> & { messages?: Record<string, string> };
       if (res.status !== 'success') {
-        error.value = res.message;
+        error.value = res.messages 
+          ? Object.values(res.messages).join(', ') 
+          : res.message;
         return;
       }
       await obtenerProductos();
     } catch (e: unknown) {
-      const err = e as { message?: string };
-      error.value = err.message || 'Error al actualizar producto';
+      const err = e as { messages?: Record<string, string>; message?: string };
+      error.value = err.messages 
+        ? Object.values(err.messages).join(', ') 
+        : err.message || 'Error al actualizar producto';
     } finally {
       loading.value = false;
     }

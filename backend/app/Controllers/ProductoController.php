@@ -76,8 +76,11 @@ class ProductoController extends ResourceController
     {
         $data = $this->request->getJSON(true);
 
-        if (!$this->validate('producto')) {
-            return $this->failValidationErrors($this->validator->getErrors());
+        $rules = config('Validation')->producto_create;
+        $validation = service('validation');
+        
+        if (!$validation->setRules($rules, $data)->run($data)) {
+            return $this->failValidationErrors($validation->getErrors());
         }
 
         $producto = $this->service->crear($data);
@@ -110,8 +113,11 @@ class ProductoController extends ResourceController
     {
         $data = $this->request->getJSON(true);
 
-        if (!$this->validate('producto')) {
-            return $this->failValidationErrors($this->validator->getErrors());
+        $rules = config('Validation')->producto_update;
+        $validation = service('validation');
+        
+        if (!$validation->setRules($rules, $data)->run($data)) {
+            return $this->failValidationErrors($validation->getErrors());
         }
 
         $producto = $this->service->actualizar($id, $data);
