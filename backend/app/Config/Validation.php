@@ -31,10 +31,11 @@ class Validation extends BaseConfig
         ],
         'precio_actual' => [
             'label' => 'Precio Actual',
-            'rules' => 'required|decimal|greater_than[0]',
+            'rules' => 'required|decimal|greater_than[0]|precioLogico[precio_objetivo]',
             'errors' => [
                 'required' => 'El campo {field} es obligatorio',
-                'greater_than' => 'El campo {field} debe ser mayor a 0'
+                'greater_than' => 'El campo {field} debe ser mayor a 0',
+                'precioLogico' => 'El precio actual es demasiado alto respecto al objetivo'
             ]
         ],
         'precio_objetivo' => [
@@ -50,7 +51,7 @@ class Validation extends BaseConfig
     public array $producto_update = [
         'nombre' => [
             'label' => 'Nombre',
-            'rules' => 'min_length[3]|max_length[100]',
+            'rules' => 'permit_empty|min_length[3]|max_length[100]',
             'errors' => [
                 'min_length' => 'El campo {field} debe tener al menos 3 caracteres',
                 'max_length' => 'El campo {field} debe tener máximo 100 caracteres'
@@ -58,14 +59,15 @@ class Validation extends BaseConfig
         ],
         'precio_actual' => [
             'label' => 'Precio Actual',
-            'rules' => 'decimal|greater_than[0]',
+            'rules' => 'permit_empty|decimal|greater_than[0]|precioLogico[precio_objetivo]',
             'errors' => [
-                'greater_than' => 'El campo {field} debe ser mayor a 0'
+                'greater_than' => 'El campo {field} debe ser mayor a 0',
+                'precioLogico' => 'El precio actual es demasiado alto respecto al objetivo'
             ]
         ],
         'precio_objetivo' => [
             'label' => 'Precio Objetivo',
-            'rules' => 'decimal|greater_than[0]',
+            'rules' => 'permit_empty|decimal|greater_than[0]',
             'errors' => [
                 'greater_than' => 'El campo {field} debe ser mayor a 0'
             ]

@@ -79,7 +79,8 @@ class ProductoController extends ResourceController
         $rules = config('Validation')->producto_create;
         $validation = service('validation');
         
-        if (!$validation->setRules($rules, $data)->run($data)) {
+        $validation->setRules($rules);
+        if (!$validation->run($data)) {
             return $this->failValidationErrors($validation->getErrors());
         }
 
@@ -116,7 +117,8 @@ class ProductoController extends ResourceController
         $rules = config('Validation')->producto_update;
         $validation = service('validation');
         
-        if (!$validation->setRules($rules, $data)->run($data)) {
+        $validation->setRules($rules);
+        if (!$validation->run($data)) {
             return $this->failValidationErrors($validation->getErrors());
         }
 
