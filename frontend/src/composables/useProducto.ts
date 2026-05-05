@@ -38,14 +38,17 @@ export function useProducto() {
 
   watch(searchQuery, () => {
     currentPage.value = 1;
+    if (!searchQuery.value.trim()) {
+      obtenerProductos();
+      return;
+    }
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       obtenerProductos();
     }, 300);
   });
 
-  watch(() => onlyOffers.value, (newVal, oldVal) => {
-    console.log('onlyOffers changed:', oldVal, '->', newVal);
+  watch(() => onlyOffers.value, () => {
     currentPage.value = 1;
     obtenerProductos();
   });
@@ -54,8 +57,6 @@ export function useProducto() {
     loading.value = true;
     error.value = null;
     try {
-      console.log('Request:', { q: searchQuery.value, page: currentPage.value, soloOfertas: onlyOffers.value });
-      
       const res = await api.get('/productos', {
         params: {
           q: searchQuery.value || undefined,
@@ -63,8 +64,6 @@ export function useProducto() {
           soloOfertas: onlyOffers.value ? 1 : undefined
         }
       }) as ApiResponse<Producto[]> & { meta?: { currentPage: number; pageCount: number } };
-      
-      console.log('Response:', res.data.map(p => p.nombre), 'meta:', res.meta);
       
       if (res.status === 'success') {
         productos.value = [...res.data];
