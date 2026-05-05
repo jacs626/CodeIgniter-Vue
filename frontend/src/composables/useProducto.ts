@@ -32,6 +32,7 @@ export function useProducto() {
   const loading = ref(false);
   const error = ref<string | null>(null);
   const searchQuery = ref('');
+  const onlyOffers = ref(false);
   const currentPage = ref(1);
   const totalPages = ref(1);
 
@@ -43,21 +44,38 @@ export function useProducto() {
     }, 300);
   });
 
+  watch(() => onlyOffers.value, (newVal, oldVal) => {
+    console.log('onlyOffers changed:', oldVal, '->', newVal);
+    currentPage.value = 1;
+    obtenerProductos();
+  });
+
   const obtenerProductos = async () => {
     loading.value = true;
     error.value = null;
     try {
+      console.log('Request:', { q: searchQuery.value, page: currentPage.value, soloOfertas: onlyOffers.value });
+      
       const res = await api.get('/productos', {
         params: {
           q: searchQuery.value || undefined,
-          page: currentPage.value
+          page: currentPage.value,
+          soloOfertas: onlyOffers.value ? 1 : undefined
         }
       }) as ApiResponse<Producto[]> & { meta?: { currentPage: number; pageCount: number } };
+      
+      console.log('Response:', res.data.map(p => p.nombre), 'meta:', res.meta);
+      
       if (res.status === 'success') {
-        productos.value = res.data;
+        productos.value = [...res.data];
         if (res.meta) {
           currentPage.value = res.meta.currentPage;
           totalPages.value = res.meta.pageCount;
+          if (currentPage.value > totalPages.value) {
+            currentPage.value = 1;
+            obtenerProductos();
+            return;
+          }
         }
       } else {
         error.value = res.message;
@@ -136,6 +154,7 @@ export function useProducto() {
     loading,
     error,
     searchQuery,
+    onlyOffers,
     currentPage,
     totalPages,
     cambiarPagina,

@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import type { Producto } from '../../types';
 import ProductCard from '../ProductCard/index.vue';
 import './index.css';
 
-const props = defineProps<{
+defineProps<{
   productos: Producto[];
   searchQuery: string;
   onlyOffers?: boolean;
@@ -19,16 +18,6 @@ const emit = defineEmits<{
   (e: 'update:onlyOffers', value: boolean): void;
   (e: 'changePage', page: number): void;
 }>();
-
-const filteredProducts = computed(() => {
-  let result = props.productos;
-  
-  if (props.onlyOffers) {
-    result = result.filter(p => p.en_oferta);
-  }
-  
-  return result;
-});
 </script>
 
 <template>
@@ -50,11 +39,11 @@ const filteredProducts = computed(() => {
         <span>Solo ofertas 🔥</span>
       </label>
     </div>
-    <h2>Productos ({{ filteredProducts.length }})</h2>
-    <div v-if="filteredProducts.length === 0" class="empty-state">No hay productos registrados</div>
+    <h2>Productos ({{ productos.length }})</h2>
+    <div v-if="productos.length === 0" class="empty-state">No hay productos registrados</div>
     <div v-else class="product-grid">
       <ProductCard 
-        v-for="producto in filteredProducts" 
+        v-for="producto in productos" 
         :key="producto.id" 
         :producto="producto" 
         @editar="emit('editar', $event)" 

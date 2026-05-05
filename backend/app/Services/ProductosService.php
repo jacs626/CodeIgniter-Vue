@@ -2,20 +2,20 @@
 
 namespace App\Services;
 
-use CodeIgniter\Pager\Pager;
+use App\Models\ProductoModel;
 
 class ProductosService
 {
-    protected $model;
+    protected ProductoModel $model;
 
     public function __construct()
     {
         $this->model = model('ProductoModel');
     }
 
-    public function obtenerTodos(?string $q = null, int $perPage = 10): array
+    public function obtenerTodos(?string $q = null, bool $soloOfertas = false, int $perPage = 10): array
     {
-        return $this->model->paginateWithSearch($q, $perPage);
+        return $this->model->paginateWithSearch($q, $soloOfertas, $perPage);
     }
 
     public function obtenerPorId(int $id)

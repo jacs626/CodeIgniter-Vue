@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Entities\ProductoEntity;
 use CodeIgniter\Model;
-use CodeIgniter\Pager\Pager;
 
 class ProductoModel extends Model
 {
@@ -21,7 +20,37 @@ class ProductoModel extends Model
 
     protected $returnType = ProductoEntity::class;
 
-    public function paginateWithSearch(?string $search = null, int $perPage = 10): array
+    public function paginateWithSearch(?string $search = null, bool $soloOfertas = false, int $perPage = 10): array
+    {
+        $total = $this->getCountWithSearch($search, $soloOfertas);
+        
+        $page = (int) (service('request')->getGet('page') ?? 1);
+        $page = $page > 0 ? $page : 1;
+
+        $pager = service('pager');
+        $pager->store('default', $page, $perPage, $total, $perPage);
+
+        $builder = $this->builder()
+            ->where('deleted_at', null);
+
+        if ($search) {
+            $builder->like('nombre', $search);
+        }
+
+        if ($soloOfertas) {
+            $builder->where('precio_actual <= precio_objetivo');
+        }
+
+        $offset = ($page - 1) * $perPage;
+        $result = $builder->limit($perPage, $offset)->get()->getResult();
+
+        return [
+            'data' => $result,
+            'pager' => $pager
+        ];
+    }
+
+    private function getCountWithSearch(?string $search, bool $soloOfertas = false): int
     {
         $builder = $this->builder()
             ->where('deleted_at', null);
@@ -30,28 +59,8 @@ class ProductoModel extends Model
             $builder->like('nombre', $search);
         }
 
-        $pager = service('pager');
-        $request = service('request');
-        $page = (int) ($request->getGet('page') ?? 1);
-        $page = $page > 0 ? $page : 1;
-
-        $pager->store('default', $page, $perPage, $this->getCountWithSearch($search), $perPage);
-
-        $result = $this->paginate($perPage, 'default', $page);
-
-        return [
-            'data' => $result,
-            'pager' => $pager
-        ];
-    }
-
-    private function getCountWithSearch(?string $search): int
-    {
-        $builder = $this->builder()
-            ->where('deleted_at', null);
-
-        if ($search) {
-            $builder->like('nombre', $search);
+        if ($soloOfertas) {
+            $builder->where('precio_actual <= precio_objetivo');
         }
 
         return $builder->countAllResults();

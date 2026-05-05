@@ -2,13 +2,14 @@
 
 namespace App\Controllers;
 
+use App\Services\ProductosService;
 use App\Transformers\ProductoTransformer;
 use CodeIgniter\RESTful\ResourceController;
 
 class ProductoController extends ResourceController
 {
-    protected $service;
-    protected $transformer;
+    protected ProductosService $service;
+    protected ProductoTransformer $transformer;
 
     public function __construct()
     {
@@ -19,15 +20,16 @@ class ProductoController extends ResourceController
     public function index()
     {
         $q = $this->request->getGet('q');
+        $soloOfertas = (bool) $this->request->getGet('soloOfertas');
         $perPage = (int) ($this->request->getGet('perPage') ?: 10);
         $perPage = $perPage > 0 ? $perPage : 10;
 
-        $result = $this->service->obtenerTodos($q, $perPage);
+        $result = $this->service->obtenerTodos($q, $soloOfertas, $perPage);
 
         $pager = $result['pager'];
         $productos = $this->transformer->transformCollection($result['data']);
 
-        $currentPage = $pager->getCurrentPage('default');
+        $currentPage = (int) ($this->request->getGet('page') ?? 1);
         $pageCount = $pager->getPageCount('default');
         $baseUrl = base_url('productos') . '?q=' . ($q ?? '') . '&perPage=' . $perPage;
 
