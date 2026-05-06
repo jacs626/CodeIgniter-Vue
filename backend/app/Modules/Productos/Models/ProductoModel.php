@@ -10,6 +10,7 @@ class ProductoModel extends Model
     protected $table = 'productos';
     protected $primaryKey = 'id';
     protected $useSoftDeletes = true;
+    protected $useTimestamps = true;
     protected $deletedField  = 'deleted_at';
 
     protected $allowedFields = [
@@ -61,5 +62,26 @@ class ProductoModel extends Model
         $builder = $this->baseQuery($search, $soloOfertas);
 
         return $builder->countAllResults();
+    }
+
+    public function findByPrecioEnOferta(): array
+    {
+        return $this->where('precio_actual <= precio_objetivo')
+            ->where('deleted_at IS NULL')
+            ->findAll();
+    }
+
+    public function findByPrecioEnOfertaSince(?string $since = null): array
+    {
+        $this->where('precio_actual <= precio_objetivo')
+            ->where('deleted_at IS NULL');
+
+        if ($since) {
+            $this->where('updated_at >', $since);
+        } else {
+            $this->where('updated_at >=', date('Y-m-d H:i:s', strtotime('-24 hours')));
+        }
+
+        return $this->findAll();
     }
 }

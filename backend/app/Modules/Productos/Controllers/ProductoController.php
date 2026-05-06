@@ -144,4 +144,22 @@ class ProductoController extends ResourceController
             "message" => "Producto eliminado"
         ]);
     }
+
+    public function alertas()
+    {
+        $since = $this->request->getGet('since');
+        
+        $productos = $this->service->obtenerAlertas($since);
+        
+        $data = $this->transformer->transformCollection($productos);
+        
+        $serverTime = date('Y-m-d H:i:s');
+
+        return $this->respond([
+            "status" => "success",
+            "message" => "Alertas de precio",
+            "data" => $data,
+            "server_time" => $serverTime
+        ], 200);
+    }
 }

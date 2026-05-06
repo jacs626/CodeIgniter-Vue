@@ -173,6 +173,23 @@ class ProductosService
         }, 'DELETE', $id);
     }
 
+    public function obtenerAlertas(?string $since = null): array
+    {
+        $sinceLog = $since ?? 'primera vez';
+        log_message('info', "[ALERTAS] Obteniendo productos | since={$sinceLog}");
+        
+        $productos = $this->model->findByPrecioEnOfertaSince($since);
+        
+        $count = count($productos);
+        log_message('info', "[ALERTAS] Se encontraron {$count} productos en alerta");
+        
+        if ($count === 0) {
+            log_message('info', '[ALERTAS] Sin nuevas alertas');
+        }
+        
+        return $productos;
+    }
+
     private function executeTransaction(callable $callback, string $action, ?int $id = null): mixed
     {
         if ($id !== null && $id <= 0) {

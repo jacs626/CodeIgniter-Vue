@@ -20,6 +20,7 @@ $routes->group('productos', static function ($routes) {
 
     // públicas
     $routes->get('/', [ProductoController::class, 'index']);
+    $routes->get('alertas', [ProductoController::class, 'alertas']);
     $routes->get('(:num)', [ProductoController::class, 'show/$1']);
 
     // protegidas

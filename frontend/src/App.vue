@@ -4,6 +4,7 @@ import { useProducto } from './composables/useProducto';
 import type { Producto } from './types';
 import ProductForm from './components/ProductForm/index.vue';
 import ProductList from './components/ProductList/index.vue';
+import AlertasPrecio from './components/AlertasPrecio/index.vue';
 import './styles/global.css';
 
 const { productos, searchQuery, onlyOffers, currentPage, totalPages, cambiarPagina, obtenerProductos, crearProducto, actualizarProducto, eliminarProducto, error } = useProducto();
@@ -58,6 +59,8 @@ obtenerProductos();
     </header>
 
     <main class="main-content">
+      <AlertasPrecio />
+      
       <ProductForm
         v-model="nuevoProducto"
         :editando="editando"
