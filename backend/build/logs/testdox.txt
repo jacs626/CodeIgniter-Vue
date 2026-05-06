@@ -1,0 +1,34 @@
+Productos Service (Tests\Unit\ProductosService)
+ [x] Crear hace commit en exito
+ [x] Actualizar hace commit en exito
+ [x] Eliminar hace commit en exito
+ [x] Lectura despues de write hace query
+ [x] Obtener todos con cache hit no ejecuta query
+ [x] Obtener todos con cache miss ejecuta query y guarda
+ [x] Obtener por id retorna entidad
+ [x] Invalidate cache incrementa version y actualiza key
+ [x] Nunca guarda cache en errores
+ [x] Crear hace rollback si insert retorna false
+ [x] Crear hace rollback si insert lanza excepcion
+ [x] Actualizar hace rollback si no existe
+ [x] Actualizar hace rollback si update retorna false
+ [x] Actualizar hace rollback si update lanza excepcion
+ [x] Eliminar hace rollback si no existe
+ [x] Eliminar hace rollback si delete retorna false
+ [x] Eliminar hace rollback si delete lanza excepcion
+ [x] Transacciones orden correcto
+ [x] Transacciones rollback orden correcto
+ [x] Trans begin falla hace rollback
+ [x] Commit falla hace rollback
+ [x] No ejecuta update si no existe
+ [x] No ejecuta delete si no existe
+ [x] Double create incrementa version dos veces
+ [x] Integration producto no existe retorna false
+ [x] Read after update devuelve datos nuevos
+ [x] Read after delete no devuelve datos
+ [x] Crear con data invalida retorna false
+ [x] Obtener todos con cache corrupto hace query
+ [x] Cache corrupto hace query
+ [x] Actualizar con id invalido retorna false
+ [x] Cache no se guarda si commit falla
+

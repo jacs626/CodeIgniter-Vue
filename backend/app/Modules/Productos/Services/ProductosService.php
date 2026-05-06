@@ -21,11 +21,15 @@ class ProductosService
     private ?Request $request = null;
     private float $startTime = 0;
 
-    public function __construct(?Request $request = null)
-    {
-        $this->model = model('App\Modules\Productos\Models\ProductoModel');
-        $this->cache = service('cache');
-        $this->db = \Config\Database::connect();
+    public function __construct(
+        ?Request $request = null,
+        ?ProductoModel $model = null,
+        ?CacheInterface $cache = null,
+        ?BaseConnection $db = null
+    ) {
+        $this->model = $model ?? model('App\Modules\Productos\Models\ProductoModel');
+        $this->cache = $cache ?? service('cache');
+        $this->db = $db ?? \Config\Database::connect();
         $this->db->transException(true);
         $this->traceId = DatabaseEvents::getTraceId();
         $this->request = $request ?? service('request');
@@ -39,6 +43,10 @@ class ProductosService
         
         $cached = $this->cache->get($cacheKey);
         $duration = round((microtime(true) - $this->startTime) * 1000, 2);
+        
+        if (!is_array($cached) || !isset($cached['data'])) {
+            $cached = null;
+        }
         
         if ($cached !== null) {
             log_message('info', "🚀 CACHE | HIT | {$duration}ms");
@@ -112,6 +120,10 @@ class ProductosService
 
     public function crear(array $data)
     {
+        if (empty($data)) {
+            return false;
+        }
+        
         return $this->executeTransaction(function () use ($data) {
             $result = $this->model->insert($data);
             
@@ -125,6 +137,10 @@ class ProductosService
 
     public function actualizar(int $id, array $data)
     {
+        if ($id <= 0 || empty($data)) {
+            return false;
+        }
+        
         return $this->executeTransaction(function () use ($id, $data) {
             $existing = $this->model->find($id);
             
@@ -159,6 +175,10 @@ class ProductosService
 
     private function executeTransaction(callable $callback, string $action, ?int $id = null): mixed
     {
+        if ($id !== null && $id <= 0) {
+            return false;
+        }
+        
         $trace = $this->traceId ?? 'no-trace';
         $context = $id !== null ? " | id={$id}" : '';
         
