@@ -14,14 +14,18 @@ $routes->options('productos/(:num)', function () {
     return service('response')->setStatusCode(200);
 });
 
-$routes->get('productos', 'ProductoController::index');
-$routes->get('productos/new', 'ProductoController::new');
-$routes->get('productos/(:num)', 'ProductoController::show/$1');
-$routes->get('productos/(:num)/edit', 'ProductoController::edit/$1');
+$routes->group('productos', static function ($routes) {
 
-$routes->resource('productos', [
-    'controller' => 'ProductoController',
-    'filter' => 'auth',
-    'except' => ['index', 'show', 'new', 'edit']
-]);
+    // públicas
+    $routes->get('/', 'ProductoController::index');
+    $routes->get('(:num)', 'ProductoController::show/$1');
+
+    // protegidas
+    $routes->group('', ['filter' => 'auth'], static function ($routes) {
+        $routes->post('/', 'ProductoController::create');
+        $routes->put('(:num)', 'ProductoController::update/$1');
+        $routes->delete('(:num)', 'ProductoController::delete/$1');
+    });
+
+});
 

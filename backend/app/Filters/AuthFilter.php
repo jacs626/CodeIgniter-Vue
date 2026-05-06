@@ -12,12 +12,6 @@ class AuthFilter implements FilterInterface
 
     public function before(RequestInterface $request, $arguments = null)
     {
-        $method = $request->getMethod();
-
-        if ($method === 'OPTIONS' || $method === 'GET') {
-            return null;
-        }
-
         $authHeader = $request->getHeaderLine('Authorization');
 
         if (empty($authHeader)) {
@@ -25,7 +19,7 @@ class AuthFilter implements FilterInterface
                 ->setStatusCode(401)
                 ->setJSON([
                     'status' => 'error',
-                    'message' => 'Authorization header is required'
+                    'message' => 'Missing Authorization header'
                 ]);
         }
 
@@ -34,7 +28,7 @@ class AuthFilter implements FilterInterface
                 ->setStatusCode(401)
                 ->setJSON([
                     'status' => 'error',
-                    'message' => 'Invalid Authorization format. Use: Bearer <token>'
+                    'message' => 'Invalid Authorization format'
                 ]);
         }
 
