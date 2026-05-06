@@ -2,43 +2,55 @@
 
 namespace App\Modules\Logs\Filters;
 
+use App\Modules\Logs\Events\DatabaseEvents;
+use App\Modules\Logs\Support\RequestTracker;
 use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class RequestLogFilter implements FilterInterface
 {
-    private static array $requestTimes = [];
-    private static array $traceIds = [];
+    private const BLOCK_START = '┌────────────────────────────────────────────────────┐';
+    private const BLOCK_END   = '└────────────────────────────────────────────────────┘';
 
     public function before(RequestInterface $request, $arguments = null)
     {
-        $traceId = $request->getHeaderLine('X-Trace-Id') 
-            ?: bin2hex(random_bytes(8));
+        RequestTracker::initialize($request);
 
-        $method = $request->getMethod();
-        $uri = $request->getUri()->getPath();
+        if (!RequestTracker::getTraceId($request)) {
+            $traceId = $request->getHeaderLine('X-Trace-Id') ?: bin2hex(random_bytes(8));
+            RequestTracker::setTraceId($request, $traceId);
+        }
 
-        self::$traceIds[spl_object_id($request)] = $traceId;
-        self::$requestTimes[$traceId] = microtime(true);
+        RequestTracker::setStartTime($request);
+        RequestTracker::setCacheStatus($request, 'MISS');
 
-        log_message('info', "TRACE={$traceId}");
-        log_message('info', "[REQUEST] {$method} {$uri}");
-        log_message('info', str_repeat('-', 50));
+        $traceId = RequestTracker::getTraceId($request);
+        
+        DatabaseEvents::register($traceId);
+        DatabaseEvents::setTraceId($traceId);
+
+        log_message('info', self::BLOCK_START);
+        log_message('info', "▶ TRACE={$traceId} | {$request->getMethod()} {$request->getUri()->getPath()}");
     }
 
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
     {
-        $key = spl_object_id($request);
-        $traceId = self::$traceIds[$key] ?? 'unknown';
-
-        $uri = $request->getUri()->getPath();
+        $traceId = RequestTracker::getTraceId($request) ?? 'unknown';
+        $totalTime = RequestTracker::getTotalTime($request);
+        $cacheStatus = RequestTracker::getCacheStatus($request);
+        $sqlStats = RequestTracker::getSqlStats($request);
         $status = $response->getStatusCode();
 
-        $startTime = self::$requestTimes[$traceId] ?? microtime(true);
-        $totalTime = round((microtime(true) - $startTime) * 1000, 2);
+        log_message('info', "◀ {$status} | {$totalTime}ms");
+        log_message('info', self::BLOCK_END);
+        log_message('info', "📊 SUMMARY | TRACE={$traceId}");
+        log_message('info', "   CACHE: {$cacheStatus}");
+        log_message('info', "   SQL: {$sqlStats['count']} queries | {$sqlStats['time']}ms");
+        log_message('info', "   TIME: {$totalTime}ms");
+        log_message('info', self::BLOCK_END);
 
-        log_message('info', "[RESPONSE] {$uri} | {$status} | {$totalTime}ms");
-        log_message('info', str_repeat('=', 50));
+        RequestTracker::clear($request);
+        DatabaseEvents::clear();
     }
 }

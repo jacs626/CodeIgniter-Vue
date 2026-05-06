@@ -19,12 +19,12 @@ use CodeIgniter\Config\BaseService;
  */
 class Services extends BaseService
 {
-    public static function productoService($getShared = true)
+    public static function productoService($getShared = true, $request = null)
     {
         if ($getShared) {
             return static::getSharedInstance('productoService');
         }
 
-        return new \App\Modules\Productos\Services\ProductosService();
+        return new \App\Modules\Productos\Services\ProductosService($request);
     }
 }

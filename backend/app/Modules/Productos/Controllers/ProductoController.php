@@ -13,7 +13,7 @@ class ProductoController extends ResourceController
 
     public function __construct()
     {
-        $this->service = service('productoService');
+        $this->service = service('productoService', $this->request);
         $this->transformer = new ProductoTransformer();
     }
 

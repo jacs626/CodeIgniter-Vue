@@ -45,8 +45,8 @@ class Filters extends BaseFilters
 
     public array $filters = [
         'requestlog' => [
-            'before' => ['productos'],
-            'after' => ['productos'],
+            'before' => ['productos', 'productos/(:num)'],
+            'after' => ['productos', 'productos/(:num)'],
         ],
     ];
 }
