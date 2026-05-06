@@ -6,12 +6,14 @@ use App\Modules\Productos\Models\ProductoModel;
 use App\Modules\Logs\Events\DatabaseEvents;
 use App\Modules\Logs\Support\RequestTracker;
 use CodeIgniter\Cache\CacheInterface;
+use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\HTTP\Request;
 
 class ProductosService
 {
     protected ProductoModel $model;
     protected CacheInterface $cache;
+    protected BaseConnection $db;
     protected const CACHE_TTL = 60;
     protected const CACHE_PREFIX = 'productos_';
 
@@ -23,6 +25,8 @@ class ProductosService
     {
         $this->model = model('App\Modules\Productos\Models\ProductoModel');
         $this->cache = service('cache');
+        $this->db = \Config\Database::connect();
+        $this->db->transException(true);
         $this->traceId = DatabaseEvents::getTraceId();
         $this->request = $request ?? service('request');
     }
@@ -108,36 +112,79 @@ class ProductosService
 
     public function crear(array $data)
     {
-        $result = $this->model->insert($data);
-        
-        if ($result) {
-            $this->invalidateCache();
-        }
-        
-        return $result;
+        return $this->executeTransaction(function () use ($data) {
+            $result = $this->model->insert($data);
+            
+            if ($result === false) {
+                throw new \RuntimeException('Insert failed');
+            }
+            
+            return $result;
+        }, 'CREATE');
     }
 
     public function actualizar(int $id, array $data)
     {
-        if (!$this->model->find($id)) {
-            return null;
-        }
-
-        $this->model->update($id, $data);
-        $this->invalidateCache();
-        
-        return $this->model->find($id);
+        return $this->executeTransaction(function () use ($id, $data) {
+            $existing = $this->model->find($id);
+            
+            if (!$existing) {
+                throw new \RuntimeException("Producto not found: {$id}");
+            }
+            
+            if (!$this->model->update($id, $data)) {
+                throw new \RuntimeException("Update failed for id: {$id}");
+            }
+            
+            return $this->model->find($id);
+        }, 'UPDATE', $id);
     }
 
     public function eliminar(int $id)
     {
-        if (!$this->model->find($id)) {
-            return null;
-        }
+        return $this->executeTransaction(function () use ($id) {
+            $existing = $this->model->find($id);
+            
+            if (!$existing) {
+                throw new \RuntimeException("Producto not found: {$id}");
+            }
+            
+            if (!$this->model->delete($id)) {
+                throw new \RuntimeException("Delete failed for id: {$id}");
+            }
+            
+            return true;
+        }, 'DELETE', $id);
+    }
 
-        $this->model->delete($id);
-        $this->invalidateCache();
+    private function executeTransaction(callable $callback, string $action, ?int $id = null): mixed
+    {
+        $trace = $this->traceId ?? 'no-trace';
+        $context = $id !== null ? " | id={$id}" : '';
         
-        return true;
+        try {
+            log_message('info', "[TX] START | {$action} | TRACE={$trace}{$context}");
+            
+            $this->db->transBegin();
+            
+            $result = $callback();
+            
+            if ($this->db->transStatus() === false) {
+                throw new \RuntimeException('Transaction failed internally');
+            }
+            
+            $this->db->transCommit();
+            
+            log_message('info', "[TX] COMMIT | {$action} | TRACE={$trace}");
+            
+            $this->invalidateCache();
+            
+            return $result;
+            
+        } catch (\Throwable $e) {
+            $this->db->transRollback();
+            log_message('error', "[TX] ROLLBACK | {$action} | TRACE={$trace} | {$e->getMessage()}");
+            return false;
+        }
     }
 }
