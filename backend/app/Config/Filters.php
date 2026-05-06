@@ -2,8 +2,8 @@
 
 namespace Config;
 
-use App\Filters\AuthFilter;
-use App\Filters\RequestLogFilter;
+use App\Modules\Auth\Filters\AuthFilter;
+use App\Modules\Logs\Filters\RequestLogFilter;
 use CodeIgniter\Config\Filters as BaseFilters;
 use CodeIgniter\Filters\Cors;
 use CodeIgniter\Filters\CSRF;

@@ -39,6 +39,7 @@ class Autoload extends AutoloadConfig
      */
     public $psr4 = [
         APP_NAMESPACE => APPPATH,
+        'App\Modules' => APPPATH . 'Modules',
     ];
 
     /**
@@ -58,7 +59,9 @@ class Autoload extends AutoloadConfig
      *
      * @var array<string, string>
      */
-    public $classmap = [];
+    public $classmap = [
+        'ProductoModel' => APPPATH . 'Modules/Productos/Models/ProductoModel.php',
+    ];
 
     /**
      * -------------------------------------------------------------------

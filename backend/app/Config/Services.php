@@ -25,6 +25,6 @@ class Services extends BaseService
             return static::getSharedInstance('productoService');
         }
 
-        return new \App\Services\ProductosService();
+        return new \App\Modules\Productos\Services\ProductosService();
     }
 }

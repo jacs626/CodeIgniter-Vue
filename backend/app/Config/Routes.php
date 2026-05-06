@@ -1,6 +1,9 @@
 <?php
 
 use CodeIgniter\Router\RouteCollection;
+use App\Modules\Productos\Controllers\ProductoController;
+use App\Modules\Auth\Filters\AuthFilter;
+use App\Modules\Logs\Filters\RequestLogFilter;
 
 /**
  * @var RouteCollection $routes
@@ -14,17 +17,17 @@ $routes->options('productos/(:num)', function () {
     return service('response')->setStatusCode(200);
 });
 
-$routes->group('productos', static function ($routes) {
+$routes->group('productos', ['filter' => RequestLogFilter::class], static function ($routes) {
 
     // públicas
-    $routes->get('/', 'ProductoController::index');
-    $routes->get('(:num)', 'ProductoController::show/$1');
+    $routes->get('/', [ProductoController::class, 'index']);
+    $routes->get('(:num)', [ProductoController::class, 'show/$1']);
 
     // protegidas
-    $routes->group('', ['filter' => 'auth'], static function ($routes) {
-        $routes->post('/', 'ProductoController::create');
-        $routes->put('(:num)', 'ProductoController::update/$1');
-        $routes->delete('(:num)', 'ProductoController::delete/$1');
+    $routes->group('', ['filter' => AuthFilter::class], static function ($routes) {
+        $routes->post('/', [ProductoController::class, 'create']);
+        $routes->put('(:num)', [ProductoController::class, 'update/$1']);
+        $routes->delete('(:num)', [ProductoController::class, 'delete/$1']);
     });
 
 });
