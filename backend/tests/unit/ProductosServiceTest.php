@@ -641,10 +641,24 @@ public function testCrearHaceCommitEnExito(): void
     public function testIntegrationProductoNoExisteRetornaFalse(): void
     {
         $db = \Config\Database::connect();
-        
+        $dbName = $db->getDatabase();
         $tables = $db->listTables();
+        
         if (!in_array('productos', $tables, true)) {
-            $this->markTestSkipped('Tabla productos no existe en DB: ' . $db->getDatabase());
+            // Crear tabla directamente en el test
+            $db->query("
+                CREATE TABLE IF NOT EXISTS productos (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    nombre VARCHAR(255),
+                    precio_actual DECIMAL(10,2),
+                    precio_objetivo DECIMAL(10,2),
+                    created_at DATETIME,
+                    updated_at DATETIME,
+                    deleted_at DATETIME
+                )
+            ");
+            $tables = $db->listTables();
+            fwrite(STDERR, "DB: {$dbName}, Tables after create: " . implode(', ', $tables) . "\n");
         }
         
         $service = new ProductosService();

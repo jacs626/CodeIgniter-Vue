@@ -175,17 +175,17 @@ class ProductosService
 
     public function obtenerAlertas(?string $since = null): array
     {
-        $sinceLog = $since ?? 'primera vez';
-        log_message('info', "[ALERTAS] Obteniendo productos | since={$sinceLog}");
+        // $sinceLog = $since ?? 'primera vez';
+        // log_message('info', "[ALERTAS] Obteniendo productos | since={$sinceLog}");
         
         $productos = $this->model->findByPrecioEnOfertaSince($since);
         
-        $count = count($productos);
-        log_message('info', "[ALERTAS] Se encontraron {$count} productos en alerta");
+        // $count = count($productos);
+        // log_message('info', "[ALERTAS] Se encontraron {$count} productos en alerta");
         
-        if ($count === 0) {
-            log_message('info', '[ALERTAS] Sin nuevas alertas');
-        }
+        // if ($count === 0) {
+        //     log_message('info', '[ALERTAS] Sin nuevas alertas');
+        // }
         
         return $productos;
     }
