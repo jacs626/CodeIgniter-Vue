@@ -3,6 +3,9 @@
 namespace App\Modules\Productos\Services;
 
 use App\Modules\Productos\Models\ProductoModel;
+use App\Modules\Productos\Events\ProductoCreadoEvent;
+use App\Modules\Productos\Events\ProductoActualizadoEvent;
+use App\Modules\Productos\Events\ProductoEliminadoEvent;
 use App\Modules\Logs\Events\DatabaseEvents;
 use App\Modules\Logs\Support\RequestTracker;
 use CodeIgniter\Cache\CacheInterface;
@@ -214,7 +217,7 @@ class ProductosService
             
             log_message('info', "[TX] COMMIT | {$action} | TRACE={$trace}");
             
-            $this->invalidateCache();
+            $this->dispatchEvent($action, $result);
             
             return $result;
             
@@ -222,6 +225,37 @@ class ProductosService
             $this->db->transRollback();
             log_message('error', "[TX] ROLLBACK | {$action} | TRACE={$trace} | {$e->getMessage()}");
             return false;
+        }
+    }
+
+    private function dispatchEvent(string $action, mixed $result): void
+    {
+        if (!is_array($result) && !is_object($result)) {
+            return;
+        }
+
+        $eventData = [
+            'id' => $result['id'] ?? $result->id ?? null,
+            'nombre' => $result['nombre'] ?? $result->nombre ?? null,
+            'precio_actual' => $result['precio_actual'] ?? $result->precio_actual ?? null,
+            'precio_objetivo' => $result['precio_objetivo'] ?? $result->precio_objetivo ?? null,
+            'action' => $action,
+            'timestamp' => date('Y-m-d H:i:s'),
+            'trace_id' => $this->traceId,
+        ];
+
+        $eventMap = [
+            'CREATE' => ProductoCreadoEvent::class,
+            'UPDATE' => ProductoActualizadoEvent::class,
+            'DELETE' => ProductoEliminadoEvent::class,
+        ];
+
+        $eventClass = $eventMap[$action] ?? null;
+
+        if ($eventClass) {
+            $event = new $eventClass($eventData);
+            $event->dispatchAsync();
+            log_message('info', "[EVENT] Dispatched async: {$event->getName()}");
         }
     }
 }

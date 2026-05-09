@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import type { Producto } from '../../types';
-import './index.css';
+import type { Producto } from "../../types";
+import "./index.css";
 
 defineProps<{
   producto: Producto;
 }>();
 
 defineEmits<{
-  (e: 'editar', producto: Producto): void;
-  (e: 'eliminar', id: number): void;
+  (e: "editar", producto: Producto): void;
+  (e: "eliminar", id: number): void;
 }>();
 </script>
 

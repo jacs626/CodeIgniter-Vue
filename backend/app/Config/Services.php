@@ -27,4 +27,22 @@ class Services extends BaseService
 
         return new \App\Modules\Productos\Services\ProductosService($request);
     }
+
+    public static function queue($getShared = true)
+    {
+        if ($getShared) {
+            return static::getSharedInstance('queue');
+        }
+
+        return new \App\Modules\Core\Services\QueueService();
+    }
+
+    public static function queueJobModel($getShared = true)
+    {
+        if ($getShared) {
+            return static::getSharedInstance('queueJobModel');
+        }
+
+        return new \App\Modules\Core\Models\QueueJobModel();
+    }
 }

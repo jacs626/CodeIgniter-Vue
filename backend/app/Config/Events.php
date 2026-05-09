@@ -55,3 +55,22 @@ Events::on('pre_system', static function (): void {
 });
 
 // SQL logging is handled by RequestLogFilter + DatabaseEvents
+
+use App\Modules\Core\Listeners\RegistrarLogProductoListener;
+use App\Modules\Core\Listeners\InvalidarCacheProductoListener;
+use App\Modules\Core\Listeners\NotificarAlertaProductoListener;
+
+$logListener = new RegistrarLogProductoListener();
+$cacheListener = new InvalidarCacheProductoListener();
+$alertaListener = new NotificarAlertaProductoListener();
+
+Events::on('producto.creado', [$logListener, 'handle']);
+Events::on('producto.creado', [$cacheListener, 'handle']);
+Events::on('producto.creado', [$alertaListener, 'handle']);
+
+Events::on('producto.actualizado', [$logListener, 'handle']);
+Events::on('producto.actualizado', [$cacheListener, 'handle']);
+Events::on('producto.actualizado', [$alertaListener, 'handle']);
+
+Events::on('producto.eliminado', [$logListener, 'handle']);
+Events::on('producto.eliminado', [$cacheListener, 'handle']);
