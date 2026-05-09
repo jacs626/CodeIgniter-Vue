@@ -2,49 +2,94 @@
 
 Proyecto fullstack para gestión de productos con seguimiento de precios, detección de ofertas y optimización mediante cache.
 
-El objetivo del proyecto es aprender arquitectura moderna con CodeIgniter 4 + Vue 3, aplicando separación de responsabilidades real entre capas, además de implementar un sistema de observabilidad con logs de request, SQL y cache.
+El objetivo del proyecto es aprender arquitectura moderna con CodeIgniter 4 + Vue 3, aplicando separación de responsabilidades real entre capas, además de implementar observabilidad, testing, eventos y procesamiento asíncrono mediante colas.
 
 ---
 
-## 🧠 Idea del sistema
+# 🚀 Tecnologías utilizadas
+
+## Backend
+
+- PHP 8
+- CodeIgniter 4
+- MySQL
+- Composer
+- PHPUnit
+
+## Frontend
+
+- Vue 3
+- TypeScript
+- Axios
+- Composition API
+
+---
+
+# 🧠 Idea del sistema
 
 Un producto se considera en oferta cuando:
 
+```php
 precio_actual <= precio_objetivo
+```
 
 Esta lógica vive en el backend (Entity), no en el frontend.
 
 ---
 
-## 🚀 Ejecución
+# 🚀 Ejecución
 
-### Backend
+## Backend
 
-cd backend  
+```bash
+cd backend
+composer install
 php spark serve
+```
 
+Backend:
+
+```txt
 http://localhost:8080
-
-### Frontend
-
-cd frontend  
-npm install  
-npm run dev
-
-http://localhost:5173
+```
 
 ---
 
-## 🏗️ Arquitectura general
+## Frontend
 
-1. HTTP Request
-2. Filter (RequestLogFilter + Trace ID)
-3. Controller
-4. Service (lógica de negocio + cache)
-5. Model (acceso a datos SQL)
-6. Entity (reglas de dominio)
-7. Transformer (formato API)
-8. JSON Response
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend:
+
+```txt
+http://localhost:5173
+```
+
+---
+
+# 🏗️ Arquitectura general
+
+```txt
+HTTP Request
+   ↓
+Filters
+   ↓
+Controller
+   ↓
+Service
+   ↓
+Model
+   ↓
+Entity
+   ↓
+Transformer
+   ↓
+JSON Response
+```
 
 ---
 
@@ -52,150 +97,377 @@ http://localhost:5173
 
 ---
 
-## 📡 Observabilidad del sistema (LOGS)
+# 📦 Arquitectura modular
 
-El sistema incluye logging estructurado en `writable/logs`:
+El proyecto fue reorganizado utilizando módulos para mejorar:
 
-### 🧾 Request / Response logging
+- Escalabilidad
+- Separación de responsabilidades
+- Mantenibilidad
+- Reutilización de componentes
+
+Estructura principal:
+
+```txt
+Modules/
+├── Productos/
+├── Logs/
+├── Core/
+├── Auth/
+```
+
+Cada módulo encapsula:
+
+- Controllers
+- Services
+- Models
+- Entities
+- Events
+- Listeners
+- Transformers
+
+---
+
+# 📡 Observabilidad del sistema (LOGS)
+
+El sistema incluye logging estructurado en:
+
+```txt
+writable/logs
+```
+
+---
+
+## 🧾 Request / Response logging
+
+Se registra:
 
 - Método HTTP
 - Endpoint
 - Status code
+- Tiempo de respuesta
 - Timestamp
-- TRACE ID por request
-
----
-
-### 🧠 Cache logging
-
-El sistema registra:
-
-- CACHE HIT (respuesta desde cache, sin SQL)
-- CACHE MISS (ejecución de SQL)
-- CACHE SAVE (guardado con TTL)
-- CACHE INVALIDATED (cuando se crea/actualiza/elimina producto)
+- TRACE ID único
 
 Ejemplo:
 
-CACHE | HIT | key=productos_v2_xxx  
-CACHE | MISS | key=productos_v2_xxx  
-CACHE | SAVE | ttl=60s  
-CACHE | INVALIDATED | oldVersion=1 → newVersion=2
+```txt
+[REQUEST] GET /productos TRACE=abc123
+[RESPONSE] 200 OK TRACE=abc123
+```
 
 ---
 
-### 🧩 SQL logging
-
-Se registran todas las consultas:
-
-- Tiempo de ejecución (ms)
-- Query ejecutada
-- SELECT / INSERT / UPDATE / DELETE
-
-Ejemplo:
-
-SQL | time=0.23ms | SELECT \* FROM productos
-
----
-
-### 🔍 TRACE ID
+## 🔍 TRACE ID
 
 Cada request genera un identificador único:
 
+```txt
 TRACE=651f565129550c93
+```
 
 Esto permite rastrear todo el flujo:
 
-REQUEST → CACHE → SQL → RESPONSE
+```txt
+REQUEST → CACHE → SQL → EVENTS → RESPONSE
+```
 
 ---
 
-## 🧠 Controller (ProductoController)
+# ⚡ Sistema de cache
 
-Responsable de:
+El sistema implementa cache inteligente para optimizar queries repetidas.
 
-- Recibir requests
-- Validar input
-- Delegar al service
-- Formatear respuesta API
+Características:
+
+- Cache por filtros
+- TTL configurable
+- Versionado de cache
+- Invalidación automática
+- Cache por paginación
+- Cache por búsqueda
+
+Ejemplos de logs:
+
+```txt
+CACHE | HIT
+CACHE | MISS
+CACHE | SAVE | ttl=60s
+CACHE | INVALIDATED | v1→v2
+```
 
 ---
 
-## ⚙️ Service (ProductosService)
+# 🧩 SQL Logging
 
-Herramientas usadas:
+Se registran automáticamente:
 
-- model('ProductoModel')
-- service('cache')
+- SELECT
+- INSERT
+- UPDATE
+- DELETE
+- Tiempo de ejecución SQL
+
+Ejemplo:
+
+```txt
+SQL | time=0.23ms | SELECT * FROM productos
+```
+
+---
+
+# 🔄 Transactions (Transacciones)
+
+El sistema implementa transacciones para garantizar integridad de datos.
+
+Cada operación importante:
+
+- inicia transacción
+- ejecuta operación
+- hace COMMIT si todo sale bien
+- hace ROLLBACK si ocurre un error
+
+Ejemplo:
+
+```txt
+[TX] START | CREATE
+[TX] COMMIT | CREATE
+```
+
+o en caso de error:
+
+```txt
+[TX] ROLLBACK | UPDATE
+```
+
+Esto evita inconsistencias en la base de datos.
+
+---
+
+# ⚙️ Event System + Queue System
+
+El proyecto implementa un sistema de eventos desacoplado y procesamiento asíncrono.
+
+---
+
+## 🧠 ¿Cómo funciona?
+
+Cuando ocurre una acción importante:
+
+```txt
+Crear producto
+Actualizar producto
+Eliminar producto
+```
+
+el sistema:
+
+1. Ejecuta la transacción
+2. Guarda datos en la base de datos
+3. Hace COMMIT
+4. Dispara un evento
+5. El evento entra a una cola (`queue_jobs`)
+6. Un worker procesa los jobs pendientes
+7. Los listeners ejecutan tareas secundarias
+
+---
+
+## 🧩 Ejemplo real del flujo
+
+```txt
+POST /productos
+   ↓
+ProductosService
+   ↓
+INSERT producto
+   ↓
+COMMIT
+   ↓
+ProductoCreadoEvent
+   ↓
+QueueService
+   ↓
+queue_jobs
+   ↓
+queue:work
+   ↓
+Listeners
+```
+
+---
+
+## 🎧 Listeners implementados
+
+### RegistrarLogProductoListener
+
+Registra logs automáticos del evento.
+
+---
+
+### InvalidarCacheProductoListener
+
+Invalida cache automáticamente después de cambios.
+
+---
+
+### NotificarAlertaProductoListener
+
+Detecta productos que entran en oferta.
+
+---
+
+# 🗂️ Queue Worker
+
+El sistema incluye un worker CLI:
+
+```bash
+php spark queue:work
+```
 
 Responsabilidades:
 
-- Manejo de cache (GET / SAVE / INVALIDATE)
-- Generación de cache keys
-- Control de versión de cache
-- Lógica de negocio de productos
+- Buscar jobs pendientes
+- Procesar eventos
+- Ejecutar listeners
+- Manejar errores
+- Reintentos automáticos
 
 ---
 
-### 🧠 Sistema de cache
+## 🔁 Retry automático
 
-El sistema implementa:
+Los jobs fallidos pueden reintentarse automáticamente:
 
-- Cache por filtros (query + paginación + ofertas)
-- TTL de 60 segundos
-- Versionado de cache (evita invalidaciones masivas costosas)
-- Invalidación automática al crear/actualizar/eliminar
+```txt
+attempts < max_attempts
+```
+
+Esto mejora resiliencia del sistema.
 
 ---
 
-## 🗄️ Model (ProductoModel)
+# 🧪 Testing
+
+El proyecto incluye pruebas automatizadas utilizando PHPUnit.
+
+---
+
+## ✅ Tipos de pruebas realizadas
+
+### Tests de servicios
+
+Validan:
+
+- creación
+- actualización
+- eliminación
+- cache
+- validaciones
+- manejo de errores
+
+---
+
+### Tests de transactions
+
+Se probaron escenarios como:
+
+- rollback automático
+- errores en update
+- errores en delete
+- transacciones exitosas
+
+---
+
+### Tests de cache
+
+Validan:
+
+- cache hit
+- cache miss
+- invalidación automática
+- generación de keys
+
+---
+
+### Tests de eventos y cola
+
+Se verificó:
+
+- enqueue de jobs
+- procesamiento de jobs
+- ejecución de listeners
+- manejo de fallos
+
+---
+
+# 🧠 Controller (ProductoController)
+
+Responsable de:
+
+- recibir requests
+- validar input
+- devolver responses
+- delegar lógica al service
+
+---
+
+# ⚙️ Service (ProductosService)
+
+Responsable de:
+
+- lógica de negocio
+- manejo de cache
+- transactions
+- dispatch de eventos
+- coordinación del flujo del sistema
+
+---
+
+# 🗄️ Model (ProductoModel)
 
 Responsable de acceso a base de datos.
 
 Incluye:
 
 - Soft deletes
-- Query builder dinámico
-- Filtros por búsqueda
-- Filtro de ofertas
-- Paginación manual optimizada
+- Query Builder
+- Filtros dinámicos
+- Paginación
+- Búsqueda
+- Ofertas
 
 ---
 
-## 🧠 Entity (ProductoEntity)
+# 🧠 Entity (ProductoEntity)
 
-class ProductoEntity extends Entity
+Representa reglas reales del dominio.
 
-Regla de negocio principal:
+Ejemplo:
 
-public function getEnOferta(): bool  
-{  
- return (float) $this->precio_actual <= (float) $this->precio_objetivo;  
+```php
+public function getEnOferta(): bool
+{
+    return (float) $this->precio_actual <= (float) $this->precio_objetivo;
 }
-
-Responsabilidad:
-
-- Contiene lógica de dominio
-- No depende del frontend
-- Representa entidad real del sistema
+```
 
 ---
 
-## 🔄 Transformer (ProductoTransformer)
+# 🔄 Transformer (ProductoTransformer)
 
 Responsable de:
 
-- Convertir Entity → JSON API
-- Evitar exposición de datos innecesarios
-- Mantener contrato de API limpio
+- Entity → JSON
+- Limpiar respuestas API
+- Mantener contrato consistente
 
 ---
 
-## 🌐 FRONTEND (Vue 3 + TypeScript)
+# 🌐 FRONTEND (Vue 3 + TypeScript)
 
 ---
 
-## 🧩 Composables (useProducto)
+# 🧩 Composables
 
 Uso de:
 
@@ -203,66 +475,122 @@ Uso de:
 - computed()
 - watch()
 
-Responsabilidad:
+Responsabilidades:
 
-- Estado centralizado de productos
-- Reutilización de lógica
-- Manejo de requests
+- estado reactivo
+- lógica reutilizable
+- polling
+- requests API
 
 ---
 
-## 🎨 Componentes
+# 🚨 Sistema de alertas en tiempo real
 
-### ProductList.vue
+El frontend implementa polling automático:
+
+```txt
+cada 5 segundos
+```
+
+para detectar nuevas ofertas.
+
+Características:
+
+- detección incremental
+- evita duplicados
+- sonido de alerta
+- actualización automática
+- control mediante timestamps (`since`)
+
+---
+
+# 🎨 Componentes Vue
+
+## ProductList.vue
 
 - v-for
 - v-if
-- computed
 - props
-
-### ProductCard.vue
-
-- props
-- render condicional
-- bindings dinámicos
+- eventos
+- filtros
 
 ---
 
-## 🌐 Axios
+## ProductForm.vue
 
-const api = axios.create({  
- baseURL: "http://localhost:8080"  
+- formularios reactivos
+- validación
+- edición/creación
+
+---
+
+## AlertasPrecio.vue
+
+- polling automático
+- render reactivo
+- detección incremental
+
+---
+
+# 🌐 Axios
+
+```ts
+const api = axios.create({
+  baseURL: "http://localhost:8080",
 });
+```
 
 ---
 
-## 🧠 SISTEMA COMPLETO
+# ⚡ OPTIMIZACIONES IMPLEMENTADAS
 
-Controller → HTTP  
-Service → Cache + lógica  
-Model → SQL  
-Entity → dominio  
-Transformer → API
-
----
-
-## ⚡ OPTIMIZACIONES IMPLEMENTADAS
-
-✔ Cache con TTL (60s)  
+✔ Cache con TTL  
 ✔ Cache versionado  
-✔ Evita queries repetidas  
-✔ SQL logging con tiempo de ejecución  
-✔ Request tracing con ID único  
-✔ Invalidación automática de cache
+✔ Invalidación automática  
+✔ Query optimization  
+✔ Logging estructurado  
+✔ Trace ID  
+✔ Transactions  
+✔ Queue system  
+✔ Event-driven architecture  
+✔ Retry automático  
+✔ Polling incremental  
+✔ Arquitectura modular  
+✔ Soft deletes  
+✔ Paginación optimizada  
+✔ Testing automatizado
 
 ---
 
-## 🧠 APRENDIZAJES
+# 🧠 APRENDIZAJES
 
-- Arquitectura por capas real
-- Separación de responsabilidades
-- Cache strategy con invalidación inteligente
-- Observabilidad backend (logs completos)
-- Optimización de queries SQL
+- Arquitectura por capas
+- Arquitectura modular
+- Event-driven architecture
+- Queue systems
+- Transactions
+- Cache strategies
+- Observabilidad backend
+- Logging estructurado
+- Optimización SQL
 - Vue 3 Composition API
-- Estado reactivo con composables
+- Estado reactivo
+- Polling en frontend
+- Testing automatizado
+- Separación de responsabilidades
+- PHP moderno con Composer
+- CodeIgniter 4 avanzado
+
+---
+
+# 📚 Aprendizaje continuo
+
+Durante el desarrollo del proyecto también se reforzaron conocimientos mediante:
+
+- documentación oficial de PHP
+- documentación oficial de CodeIgniter 4
+- tutoriales de arquitectura backend
+- prácticas de clean architecture
+- testing y patrones de diseño
+
+El proyecto fue utilizado como entorno práctico de aprendizaje y experimentación de arquitectura moderna fullstack.
