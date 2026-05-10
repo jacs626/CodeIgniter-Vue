@@ -133,8 +133,10 @@ class ProductosService
             if ($result === false) {
                 throw new \RuntimeException('Insert failed');
             }
-            
-            return $result;
+
+            $this->invalidateCache();
+
+            return $this->model->find($result);
         }, 'CREATE');
     }
 
@@ -154,7 +156,9 @@ class ProductosService
             if (!$this->model->update($id, $data)) {
                 throw new \RuntimeException("Update failed for id: {$id}");
             }
-            
+
+            $this->invalidateCache();
+
             return $this->model->find($id);
         }, 'UPDATE', $id);
     }
@@ -171,7 +175,9 @@ class ProductosService
             if (!$this->model->delete($id)) {
                 throw new \RuntimeException("Delete failed for id: {$id}");
             }
-            
+
+            $this->invalidateCache();
+
             return true;
         }, 'DELETE', $id);
     }
@@ -217,7 +223,11 @@ class ProductosService
             
             log_message('info', "[TX] COMMIT | {$action} | TRACE={$trace}");
             
-            $this->dispatchEvent($action, $result);
+            try {
+                $this->dispatchEvent($action, $result);
+            } catch (\Throwable $e) {
+                log_message('error', "[EVENT ERROR] {$action} | TRACE={$trace} | {$e->getMessage()}");
+            }
             
             return $result;
             
@@ -230,15 +240,19 @@ class ProductosService
 
     private function dispatchEvent(string $action, mixed $result): void
     {
-        if (!is_array($result) && !is_object($result)) {
+        if ($result instanceof \CodeIgniter\Entity\Entity) {
+            $result = $result->toArray(false, true);
+        }
+
+        if (!is_array($result)) {
             return;
         }
 
         $eventData = [
-            'id' => $result['id'] ?? $result->id ?? null,
-            'nombre' => $result['nombre'] ?? $result->nombre ?? null,
-            'precio_actual' => $result['precio_actual'] ?? $result->precio_actual ?? null,
-            'precio_objetivo' => $result['precio_objetivo'] ?? $result->precio_objetivo ?? null,
+            'id' => $result['id'] ?? null,
+            'nombre' => $result['nombre'] ?? null,
+            'precio_actual' => $result['precio_actual'] ?? null,
+            'precio_objetivo' => $result['precio_objetivo'] ?? null,
             'action' => $action,
             'timestamp' => date('Y-m-d H:i:s'),
             'trace_id' => $this->traceId,

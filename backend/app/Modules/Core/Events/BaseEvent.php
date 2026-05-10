@@ -14,7 +14,7 @@ abstract class BaseEvent
     public function __construct(array $data = [])
     {
         $this->data = $data;
-        $this->logger = logger();
+        $this->logger = service('logger');
     }
 
     abstract public function getName(): string;

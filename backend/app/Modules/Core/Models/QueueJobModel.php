@@ -48,7 +48,7 @@ class QueueJobModel extends Model
     {
         return $this->insert([
             'event_type' => $eventType,
-            'payload' => json_encode($payload),
+            'payload' => json_encode($payload, JSON_UNESCAPED_UNICODE),
             'status' => self::STATUS_PENDING,
             'attempts' => 0,
             'max_attempts' => $maxAttempts,

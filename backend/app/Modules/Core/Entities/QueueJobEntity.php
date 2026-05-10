@@ -21,7 +21,6 @@ class QueueJobEntity extends Entity
 
     protected $casts = [
         'id' => 'int',
-        'payload' => 'array',
         'attempts' => 'int',
         'max_attempts' => 'int',
     ];

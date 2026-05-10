@@ -61,7 +61,7 @@ class QueueService
     {
         $jobId = $job->id;
         $eventType = $job->event_type;
-        $payload = is_array($job->payload) ? $job->payload : json_decode($job->payload, true);
+        $payload = json_decode($job->payload, true);
 
         $this->log('info', "[QUEUE] Processing job #{$jobId}: {$eventType}");
 
