@@ -63,7 +63,6 @@ export function useAlertas() {
             productosVistos.value.add(p.id);
           });
           reproducirSonido();
-          console.log("Nuevas alertas:", nuevas);
         }
 
         alertas.value = [...nuevas, ...alertasActuales];
