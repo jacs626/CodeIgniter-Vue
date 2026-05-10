@@ -9,13 +9,12 @@ const api = axios.create({
   },
 });
 
+const productosVistos = ref<Set<number>>(new Set());
+
 export function useAlertas() {
   const alertas = ref<Producto[]>([]);
   const cargando = ref(false);
   const error = ref<string | null>(null);
-
-  // guardar ids ya vistos
-  const productosVistos = ref<Set<number>>(new Set());
 
   let intervalId: ReturnType<typeof setInterval> | null = null;
 
@@ -39,7 +38,7 @@ export function useAlertas() {
     }
   };
 
-  const obtenerAlertas = async (primeraVez: boolean = false) => {
+  const obtenerAlertas = async () => {
     try {
       cargando.value = true;
       error.value = null;
@@ -49,18 +48,12 @@ export function useAlertas() {
 
       if (result.status === "success") {
         const productos = result.data as Producto[];
+        const productosEnOfertaIds = new Set(productos.map(p => p.id));
 
-        // primera carga -> solo marcar como vistos
-        if (primeraVez) {
-          productos.forEach((p) => {
-            productosVistos.value.add(p.id);
-          });
+        const alertasActuales = alertas.value.filter(a => 
+          productosEnOfertaIds.has(a.id)
+        );
 
-          console.log("Alertas iniciales ignoradas");
-          return;
-        }
-
-        // detectar solo nuevos
         const nuevas = productos.filter((p) => {
           return !productosVistos.value.has(p.id);
         });
@@ -69,13 +62,11 @@ export function useAlertas() {
           nuevas.forEach((p) => {
             productosVistos.value.add(p.id);
           });
-
-          alertas.value = [...nuevas, ...alertas.value];
-
           reproducirSonido();
-
           console.log("Nuevas alertas:", nuevas);
         }
+
+        alertas.value = [...nuevas, ...alertasActuales];
       }
     } catch (e: any) {
       error.value = "Error de conexión";
@@ -85,11 +76,11 @@ export function useAlertas() {
     }
   };
 
-  const iniciarPolling = async () => {
-    await obtenerAlertas(true);
+  const iniciarPolling = () => {
+    obtenerAlertas();
 
     intervalId = setInterval(() => {
-      obtenerAlertas(false);
+      obtenerAlertas();
     }, 5000);
   };
 

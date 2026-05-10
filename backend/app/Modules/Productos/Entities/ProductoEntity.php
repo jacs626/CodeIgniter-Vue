@@ -11,12 +11,16 @@ class ProductoEntity extends Entity
         'nombre' => null,
         'precio_actual' => null,
         'precio_objetivo'=> null,
+        'created_at' => null,
+        'updated_at' => null,
     ];
 
     protected $casts = [
         'id' => 'int',
         'precio_actual' => 'float',
         'precio_objetivo'=> 'float',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     public function getEnOferta(): bool

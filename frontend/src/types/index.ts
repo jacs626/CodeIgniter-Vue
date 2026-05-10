@@ -6,6 +6,11 @@ export interface Producto {
   en_oferta?: boolean;
 }
 
+export interface ProductoDetalle extends Producto {
+  created_at: string | null;
+  updated_at: string | null;
+}
+
 export interface ProductoForm {
   nombre: string;
   precio_actual: number;

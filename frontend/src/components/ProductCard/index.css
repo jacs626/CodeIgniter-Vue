@@ -11,6 +11,14 @@
   border: 2px solid #fc8181;
 }
 
+.product-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.product-info {
+  cursor: pointer;
+}
+
 .product-header {
   display: flex;
   align-items: center;
@@ -62,6 +70,7 @@
   gap: 10px;
 }
 
+.btn-view,
 .btn-edit,
 .btn-delete {
   padding: 8px 16px;
@@ -71,6 +80,15 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+.btn-view {
+  background: #4299e1;
+  color: white;
+}
+
+.btn-view:hover {
+  background: #3182ce;
 }
 
 .btn-edit {

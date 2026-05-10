@@ -116,9 +116,45 @@ class ProductosService
         }
     }
 
+    protected function invalidateProductoCache(int $id): void
+    {
+        $cacheKey = 'producto_' . $id;
+        $this->cache->delete($cacheKey);
+        log_message('info', "💾 CACHE | DELETE | {$cacheKey}");
+    }
+
     public function obtenerPorId(int $id)
     {
-        return $this->model->find($id);
+        $this->startTime = microtime(true);
+        
+        $cacheKey = 'producto_' . $id;
+        $cached = $this->cache->get($cacheKey);
+        $duration = round((microtime(true) - $this->startTime) * 1000, 2);
+        
+        if ($cached !== null) {
+            log_message('info', "🚀 CACHE | HIT | id={$id} | {$duration}ms");
+            
+            if ($this->request instanceof Request) {
+                RequestTracker::setCacheStatus($this->request, 'HIT');
+            }
+            
+            return $cached;
+        }
+        
+        log_message('info', "🚀 CACHE | MISS | id={$id} | {$duration}ms");
+        
+        if ($this->request instanceof Request) {
+            RequestTracker::setCacheStatus($this->request, 'MISS');
+        }
+        
+        $producto = $this->model->find($id);
+        
+        if ($producto !== null) {
+            $this->cache->save($cacheKey, $producto, self::CACHE_TTL);
+            log_message('info', "💾 CACHE | SAVE | {$cacheKey} | ttl=" . self::CACHE_TTL . 's');
+        }
+        
+        return $producto;
     }
 
     public function crear(array $data)
@@ -136,7 +172,12 @@ class ProductosService
 
             $this->invalidateCache();
 
-            return $this->model->find($result);
+            $producto = $this->model->find($result);
+            if ($producto) {
+                $this->invalidateProductoCache($result);
+            }
+
+            return $producto;
         }, 'CREATE');
     }
 
@@ -158,6 +199,7 @@ class ProductosService
             }
 
             $this->invalidateCache();
+            $this->invalidateProductoCache($id);
 
             return $this->model->find($id);
         }, 'UPDATE', $id);
@@ -177,6 +219,7 @@ class ProductosService
             }
 
             $this->invalidateCache();
+            $this->invalidateProductoCache($id);
 
             return true;
         }, 'DELETE', $id);

@@ -79,7 +79,7 @@ class ProductoModel extends Model
         if ($since) {
             $this->where('updated_at >', $since);
         } else {
-            $this->where('updated_at >=', date('Y-m-d H:i:s', strtotime('-24 hours')));
+            $this->where('updated_at >=', date('Y-m-d 00:00:00'));
         }
 
         return $this->findAll();

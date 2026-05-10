@@ -93,13 +93,26 @@ class ProductoController extends ResourceController
 
     public function show($id = null)
     {
-        $producto = $this->service->obtenerPorId($id);
+        log_message('info', "📥 REQUEST | GET /productos/{$id}");
+        
+        if ($id === null || !is_numeric($id)) {
+            log_message('warning', "⚠️ VALIDATION | ID no numérico: {$id}");
+            return $this->failValidationErrors(['id' => 'El ID debe ser numérico']);
+        }
+
+        $intId = (int) $id;
+        log_message('info', "🔍 SERVICE | obtenerPorId({$intId})");
+        
+        $producto = $this->service->obtenerPorId($intId);
 
         if (!$producto) {
+            log_message('warning', "❌ NOT_FOUND | id={$intId}");
             return $this->failNotFound("Producto no encontrado");
         }
 
-        $data = $this->transformer->transform($producto);
+        log_message('info', "✨ RESPONSE | Producto encontrado | id={$intId}");
+        
+        $data = $this->transformer->transformDetail($producto);
 
         return $this->respond([
             "status" => "success",
