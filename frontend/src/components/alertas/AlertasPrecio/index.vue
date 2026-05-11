@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
-import { useAlertasStore } from "../../stores/alertasStore";
+import { useAlertasStore } from "../../../stores/alertasStore";
 import { storeToRefs } from "pinia";
 import "./index.css";
 

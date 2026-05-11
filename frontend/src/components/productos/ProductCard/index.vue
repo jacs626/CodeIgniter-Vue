@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
-import type { Producto } from "../../types";
+import type { Producto } from "../../../types";
 import "./index.css";
 
 const props = defineProps<{

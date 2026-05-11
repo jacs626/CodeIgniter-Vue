@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { ProductoForm } from '../../types';
+import type { ProductoForm } from '../../../types';
 import './index.css';
 
 interface Props {

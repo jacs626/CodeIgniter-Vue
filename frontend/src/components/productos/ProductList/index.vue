@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Producto } from '../../types';
+import type { Producto } from '../../../types';
 import ProductCard from '../ProductCard/index.vue';
 import './index.css';
 
