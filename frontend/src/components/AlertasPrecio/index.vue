@@ -16,7 +16,7 @@ const toggle = () => {
     <div class="alertas-header" @click="toggle" style="cursor: pointer;">
       <h3>Alertas de Precio 🚨</h3>
       <span class="alerta-contador" v-if="alertas.length > 0">{{ alertas.length }}</span>
-      <span class="alertas-toggle">{{ expandido.value ? '▲' : '▼' }}</span>
+      <span class="alertas-toggle">{{ expandido ? '▲' : '▼' }}</span>
     </div>
 
     <div v-show="expandido">

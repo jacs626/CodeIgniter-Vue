@@ -10,13 +10,13 @@ const api = axios.create({
 });
 
 const productosVistos = ref<Set<number>>(new Set());
+const alertasGlobales = ref<Producto[]>([]);
+let intervalId: ReturnType<typeof setInterval> | null = null;
+let inicializado = false;
 
 export function useAlertas() {
-  const alertas = ref<Producto[]>([]);
   const cargando = ref(false);
   const error = ref<string | null>(null);
-
-  let intervalId: ReturnType<typeof setInterval> | null = null;
 
   const reproducirSonido = () => {
     try {
@@ -50,7 +50,7 @@ export function useAlertas() {
         const productos = result.data as Producto[];
         const productosEnOfertaIds = new Set(productos.map(p => p.id));
 
-        const alertasActuales = alertas.value.filter(a => 
+        const alertasActuales = alertasGlobales.value.filter(a => 
           productosEnOfertaIds.has(a.id)
         );
 
@@ -65,7 +65,7 @@ export function useAlertas() {
           reproducirSonido();
         }
 
-        alertas.value = [...nuevas, ...alertasActuales];
+        alertasGlobales.value = [...nuevas, ...alertasActuales];
       }
     } catch (e: any) {
       error.value = "Error de conexión";
@@ -76,6 +76,9 @@ export function useAlertas() {
   };
 
   const iniciarPolling = () => {
+    if (inicializado) return;
+    inicializado = true;
+
     obtenerAlertas();
 
     intervalId = setInterval(() => {
@@ -95,11 +98,11 @@ export function useAlertas() {
   });
 
   onUnmounted(() => {
-    detenerPolling();
+    // No detenemos el polling para mantener las alertas persistentes
   });
 
   return {
-    alertas,
+    alertas: alertasGlobales,
     cargando,
     error,
     obtenerAlertas,

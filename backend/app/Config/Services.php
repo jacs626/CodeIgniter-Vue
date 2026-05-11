@@ -45,4 +45,13 @@ class Services extends BaseService
 
         return new \App\Modules\Core\Models\QueueJobModel();
     }
+
+    public static function authService($getShared = true)
+    {
+        if ($getShared) {
+            return static::getSharedInstance('authService');
+        }
+
+        return new \App\Modules\Auth\Services\AuthService();
+    }
 }

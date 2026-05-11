@@ -78,4 +78,52 @@ class Validation extends BaseConfig
         'list'   => 'CodeIgniter\Validation\Views\list',
         'single' => 'CodeIgniter\Validation\Views\single',
     ];
+
+    public array $auth_register = [
+        'nombre' => [
+            'label' => 'Nombre',
+            'rules' => 'required|min_length[3]|max_length[100]',
+            'errors' => [
+                'required' => 'El campo {field} es obligatorio',
+                'min_length' => 'El campo {field} debe tener al menos 3 caracteres',
+                'max_length' => 'El campo {field} debe tener máximo 100 caracteres'
+            ]
+        ],
+        'email' => [
+            'label' => 'Email',
+            'rules' => 'required|valid_email|max_length[150]',
+            'errors' => [
+                'required' => 'El campo {field} es obligatorio',
+                'valid_email' => 'El email debe ser válido',
+                'max_length' => 'El campo {field} debe tener máximo 150 caracteres'
+            ]
+        ],
+        'password' => [
+            'label' => 'Contraseña',
+            'rules' => 'required|min_length[6]|max_length[255]',
+            'errors' => [
+                'required' => 'El campo {field} es obligatorio',
+                'min_length' => 'La contraseña debe tener al menos 6 caracteres',
+                'max_length' => 'La contraseña debe tener máximo 255 caracteres'
+            ]
+        ],
+    ];
+
+    public array $auth_login = [
+        'email' => [
+            'label' => 'Email',
+            'rules' => 'required|valid_email',
+            'errors' => [
+                'required' => 'El campo {field} es obligatorio',
+                'valid_email' => 'El email debe ser válido'
+            ]
+        ],
+        'password' => [
+            'label' => 'Contraseña',
+            'rules' => 'required',
+            'errors' => [
+                'required' => 'El campo {field} es obligatorio'
+            ]
+        ],
+    ];
 }
