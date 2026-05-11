@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { RouterView, RouterLink } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from './stores/authStore'
 import './styles/global.css'
 
+const router = useRouter()
 const authStore = useAuthStore()
 
-function handleLogout() {
+async function handleLogout() {
   authStore.logout()
-  window.location.href = '/login'
+  await router.push('/login')
+  window.location.reload()
 }
 </script>
 
@@ -15,7 +17,7 @@ function handleLogout() {
   <div class="container">
     <header class="header">
       <h1>Gestión de Precios</h1>
-      <nav class="nav">
+      <nav v-if="authStore.isAuthenticated" class="nav">
         <RouterLink to="/productos">Productos</RouterLink>
         <RouterLink to="/profile">Perfil</RouterLink>
         <a href="#" @click.prevent="handleLogout">Logout</a>
