@@ -9,67 +9,56 @@ export interface User {
   updated_at?: string
 }
 
-interface AuthState {
-  user: User | null
-  token: string | null
-  isAuthenticated: boolean
-}
-
 export const useAuthStore = defineStore('auth', {
-  state: (): AuthState => ({
-    user: null,
-    token: localStorage.getItem('token'),
-    isAuthenticated: false
+  state: () => ({
+    user: null as User | null,
+    token: null as string | null,
+    isAuthenticated: false,
+    initialized: false
   }),
 
   actions: {
-    async login(email: string, password: string) {
-      const response = await api.post('/auth/login', {
-        email,
-        password
-      })
-
-      this.user = response.data.user
-      this.token = response.data.token
-      this.isAuthenticated = true
-      if (this.token) {
-        localStorage.setItem('token', this.token)
+    initialize() {
+      const token = localStorage.getItem('token')
+      if (token) {
+        this.token = token
+        this.isAuthenticated = true
+        this.fetchUser()
       }
+      this.initialized = true
+    },
+
+    async fetchUser() {
+      try {
+        const response = await api.get('/auth/me')
+        this.user = response.data
+      } catch (e) {
+        this.logout()
+      }
+    },
+
+    setToken(token: string) {
+      this.token = token
+      this.isAuthenticated = true
+      localStorage.setItem('token', token)
+    },
+
+    async login(email: string, password: string) {
+      const response = await api.post('/auth/login', { email, password })
+      
+      this.setToken(response.data.token)
+      this.user = response.data.user
 
       return response
     },
 
     async register(nombre: string, email: string, password: string) {
-      const response = await api.post('/auth/register', {
-        nombre,
-        email,
-        password
-      })
-
+      const response = await api.post('/auth/register', { nombre, email, password })
+      
+      this.setToken(response.data.token)
       this.user = response.data.user
-      this.token = response.data.token
-      this.isAuthenticated = true
-      if (this.token) {
-        localStorage.setItem('token', this.token)
-      }
 
       return response
-    },
-
-    async restoreSession() {
-      const token = localStorage.getItem('token')
-      if (!token) {
-        return
-      }
-
-      try {
-        const response = await api.get('/auth/me')
-        this.user = response.data
-        this.token = token
-        this.isAuthenticated = true
-      } catch (error) {
-        this.logout()
-      }
     },
 
     logout() {
@@ -77,10 +66,6 @@ export const useAuthStore = defineStore('auth', {
       this.token = null
       this.isAuthenticated = false
       localStorage.removeItem('token')
-    },
-
-    getToken(): string | null {
-      return this.token
     }
   }
 })

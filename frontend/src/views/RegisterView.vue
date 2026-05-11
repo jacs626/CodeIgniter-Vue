@@ -18,7 +18,8 @@ async function handleRegister() {
 
   try {
     await authStore.register(nombre.value, email.value, password.value)
-    router.push('/productos')
+    await new Promise(resolve => setTimeout(resolve, 50))
+    router.replace('/productos')
   } catch (err: unknown) {
     const errorMessage = err as { message?: string }
     error.value = errorMessage.message || 'Error al registrar usuario'

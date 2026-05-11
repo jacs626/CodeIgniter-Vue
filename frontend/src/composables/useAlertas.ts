@@ -1,24 +1,21 @@
 import { ref, onMounted, onUnmounted } from "vue";
-import axios from "axios";
+import api from "./api";
 import type { Producto } from "../types";
 
-const api = axios.create({
-  baseURL: "http://localhost:8080",
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-const productosVistos = ref<Set<number>>(new Set());
 const alertasGlobales = ref<Producto[]>([]);
+const productosVistos = ref<Set<number>>(new Set());
 let intervalId: ReturnType<typeof setInterval> | null = null;
-let inicializado = false;
+let lastAlertaTime = 0;
 
 export function useAlertas() {
   const cargando = ref(false);
   const error = ref<string | null>(null);
 
   const reproducirSonido = () => {
+    const now = Date.now();
+    if (now - lastAlertaTime < 1000) return;
+    lastAlertaTime = now;
+
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
@@ -46,17 +43,17 @@ export function useAlertas() {
       const response = await api.get("/productos/alertas");
       const result = response.data;
 
+      console.log('obtenerAlertas - result:', result);
+      console.log('obtenerAlertas - alertasGlobales antes:', alertasGlobales.value.length);
+
       if (result.status === "success") {
         const productos = result.data as Producto[];
-        const productosEnOfertaIds = new Set(productos.map(p => p.id));
-
-        const alertasActuales = alertasGlobales.value.filter(a => 
-          productosEnOfertaIds.has(a.id)
-        );
+        console.log('obtenerAlertas - productos recibidos:', productos.length);
 
         const nuevas = productos.filter((p) => {
           return !productosVistos.value.has(p.id);
         });
+        console.log('obtenerAlertas - nuevas:', nuevas.length);
 
         if (nuevas.length > 0) {
           nuevas.forEach((p) => {
@@ -65,7 +62,8 @@ export function useAlertas() {
           reproducirSonido();
         }
 
-        alertasGlobales.value = [...nuevas, ...alertasActuales];
+        alertasGlobales.value = productos;
+        console.log('obtenerAlertas - alertasGlobales después:', alertasGlobales.value.length);
       }
     } catch (e: any) {
       error.value = "Error de conexión";
@@ -76,14 +74,13 @@ export function useAlertas() {
   };
 
   const iniciarPolling = () => {
-    if (inicializado) return;
-    inicializado = true;
-
+    if (intervalId) return;
+    
     obtenerAlertas();
 
     intervalId = setInterval(() => {
       obtenerAlertas();
-    }, 5000);
+    }, 3000);
   };
 
   const detenerPolling = () => {
@@ -93,12 +90,15 @@ export function useAlertas() {
     }
   };
 
+  const limpiarVistos = () => {
+    productosVistos.value = new Set();
+  };
+
   onMounted(() => {
     iniciarPolling();
   });
 
   onUnmounted(() => {
-    // No detenemos el polling para mantener las alertas persistentes
   });
 
   return {
@@ -108,5 +108,6 @@ export function useAlertas() {
     obtenerAlertas,
     iniciarPolling,
     detenerPolling,
+    limpiarVistos,
   };
 }

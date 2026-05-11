@@ -1,5 +1,5 @@
 import { ref, watch } from 'vue';
-import axios from 'axios';
+import api from './api';
 import type { Producto, ProductoForm } from '../types';
 
 interface ApiResponse<T> {
@@ -7,33 +7,6 @@ interface ApiResponse<T> {
   data: T;
   message: string;
 }
-
-const api = axios.create({
-  baseURL: 'http://localhost:8080',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-api.interceptors.request.use(
-  (config) => {
-    config.headers.Authorization = 'Bearer mysecrettoken123';
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  },
-);
-
-api.interceptors.response.use(
-  (response) => response.data,
-  (error) => {
-    if (error.response) {
-      return Promise.reject(error.response.data);
-    }
-    return Promise.reject({ message: 'Error de conexión' });
-  }
-);
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 

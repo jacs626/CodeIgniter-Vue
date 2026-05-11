@@ -4,7 +4,6 @@ namespace App\Modules\Auth\Services;
 
 use App\Modules\Auth\Models\UserModel;
 use App\Modules\Auth\Entities\UserEntity;
-use CodeIgniter\HTTP\Request;
 
 class AuthService
 {
@@ -15,8 +14,54 @@ class AuthService
     public function __construct(?UserModel $model = null)
     {
         $this->model = $model ?? model('App\Modules\Auth\Models\UserModel');
-        $this->jwtSecret = getenv('jwt.secret') ?: 'default-secret-change-me';
-        $this->jwtExpiration = (int) (getenv('jwt.expiration') ?: 3600);
+        
+        $this->jwtSecret = 'your-super-secret-jwt-key-change-in-production';
+        $this->jwtExpiration = 3600;
+    }
+
+    private function computeSignature(string $data): string
+    {
+        $signature = hash_hmac('sha256', $data, $this->jwtSecret, true);
+        return base64_encode($signature);
+    }
+
+    public function generateJWT(UserEntity $user): string
+    {
+        $payload = [
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'exp' => time() + $this->jwtExpiration
+        ];
+
+        $base64Url = base64_encode(json_encode($payload));
+        $base64Signature = $this->computeSignature($base64Url);
+
+        return $base64Url . '.' . $base64Signature;
+    }
+
+    public function validateToken(string $token): ?array
+    {
+        $parts = explode('.', $token);
+        
+        if (count($parts) !== 2) {
+            return null;
+        }
+
+        [$base64Url, $base64Signature] = $parts;
+
+        $expectedSignature = $this->computeSignature($base64Url);
+
+        if ($expectedSignature !== $base64Signature) {
+            return null;
+        }
+
+        $payload = json_decode(base64_decode($base64Url), true);
+
+        if (!$payload || !isset($payload['exp']) || $payload['exp'] < time()) {
+            return null;
+        }
+
+        return $payload;
     }
 
     public function register(array $data): array
@@ -78,48 +123,18 @@ class AuthService
         ];
     }
 
-    public function generateJWT(UserEntity $user): string
-    {
-        $payload = [
-            'user_id' => $user->id,
-            'email' => $user->email,
-            'exp' => time() + $this->jwtExpiration
-        ];
-
-        $base64Url = base64_encode(json_encode($payload));
-        $signature = hash_hmac('sha256', $base64Url, $this->jwtSecret);
-        $base64Signature = base64_encode($signature);
-
-        return $base64Url . '.' . $base64Signature;
-    }
-
-    public function validateToken(string $token): ?array
-    {
-        $parts = explode('.', $token);
-        
-        if (count($parts) !== 2) {
-            return null;
-        }
-
-        [$headerPayload, $signature] = $parts;
-
-        $expectedSignature = base64_encode(hash_hmac('sha256', $headerPayload, $this->jwtSecret, true));
-
-        if (!hash_equals($expectedSignature, base64_decode($signature))) {
-            return null;
-        }
-
-        $payload = json_decode(base64_decode($headerPayload), true);
-
-        if (!$payload || !isset($payload['exp']) || $payload['exp'] < time()) {
-            return null;
-        }
-
-        return $payload;
-    }
-
     public function getUserById(int $userId): ?UserEntity
     {
         return $this->model->find($userId);
+    }
+
+    public function getUserByEmail(string $email): ?UserEntity
+    {
+        return $this->model->findByEmail($email);
+    }
+
+    public function getJwtSecret(): string
+    {
+        return $this->jwtSecret;
     }
 }

@@ -71,7 +71,20 @@ class AuthController extends ResourceController
 
     public function me()
     {
-        $user = $this->request->getAttribute('auth_user');
+        $authHeader = $this->request->getHeaderLine('Authorization');
+        
+        if (empty($authHeader) || !str_starts_with($authHeader, 'Bearer ')) {
+            return $this->fail('Unauthorized', 401);
+        }
+
+        $token = trim(str_replace('Bearer ', '', $authHeader));
+        $payload = $this->service->validateToken($token);
+        
+        if (!$payload) {
+            return $this->fail('Token inválido', 401);
+        }
+
+        $user = $this->service->getUserById($payload['user_id']);
         
         if (!$user) {
             return $this->fail('Usuario no encontrado', 404);

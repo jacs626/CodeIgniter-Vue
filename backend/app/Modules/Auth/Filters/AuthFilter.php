@@ -45,19 +45,6 @@ class AuthFilter implements FilterInterface
                 ]);
         }
 
-        $user = $authService->getUserById($payload['user_id']);
-        
-        if (!$user) {
-            return service('response')
-                ->setStatusCode(401)
-                ->setJSON([
-                    'status' => 'error',
-                    'message' => 'User not found'
-                ]);
-        }
-
-        $request->setAttribute('auth_user', $user);
-        
         return null;
     }
 

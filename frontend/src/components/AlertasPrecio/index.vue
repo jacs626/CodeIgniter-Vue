@@ -1,14 +1,29 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { useAlertas } from "../../composables/useAlertas";
+import { ref, onMounted, onUnmounted } from "vue";
+import { useAlertasStore } from "../../stores/alertasStore";
+import { storeToRefs } from "pinia";
 import "./index.css";
 
-const { alertas, cargando, error } = useAlertas();
-const expandido = ref(false);
+const alertasStore = useAlertasStore()
+const { alertas, cargando, error } = storeToRefs(alertasStore)
+
+const expandido = ref(true)
+let intervalId: ReturnType<typeof setInterval> | null = null
+
+onMounted(() => {
+  alertasStore.obtenerAlertas()
+  intervalId = setInterval(() => {
+    alertasStore.obtenerAlertas()
+  }, 3000)
+})
+
+onUnmounted(() => {
+  if (intervalId) clearInterval(intervalId)
+})
 
 const toggle = () => {
-  expandido.value = !expandido.value;
-};
+  expandido.value = !expandido.value
+}
 </script>
 
 <template>

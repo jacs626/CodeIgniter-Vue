@@ -1,5 +1,4 @@
 import axios from 'axios'
-import { useAuthStore } from '../stores/authStore'
 
 const api = axios.create({
   baseURL: 'http://localhost:8080',
@@ -10,41 +9,32 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const authStore = useAuthStore()
-    const token = authStore.getToken()
-    
+    const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
-    
     return config
   },
-  (error) => {
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
 
 api.interceptors.response.use(
-  (response) => {
-    return response.data
-  },
+  (response) => response.data,
   (error) => {
+    const url = error.config?.url || ''
+    
     if (error.response?.status === 401) {
-      const authStore = useAuthStore()
-      authStore.logout()
+      const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register')
       
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+      if (!isAuthEndpoint) {
+        try {
+          localStorage.removeItem('token')
+        } catch (e) {}
         window.location.href = '/login'
       }
     }
 
-    if (error.response) {
-      return Promise.reject(error.response.data)
-    }
-
-    return Promise.reject({
-      message: 'Error de conexión',
-    })
+    return Promise.reject(error.response?.data || { message: 'Error de conexión' })
   }
 )
 

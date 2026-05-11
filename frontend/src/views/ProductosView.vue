@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useProducto } from '../composables/useProducto';
+import { useAlertasStore } from '../stores/alertasStore';
 import ProductForm from '../components/ProductForm/index.vue';
 import ProductList from '../components/ProductList/index.vue';
 import AlertasPrecio from '../components/AlertasPrecio/index.vue';
 import type { Producto, ProductoForm } from '../types';
 
 const { productos, error, searchQuery, onlyOffers, currentPage, totalPages, cambiarPagina, obtenerProductos, crearProducto, actualizarProducto, eliminarProducto } = useProducto();
+const alertasStore = useAlertasStore();
 
 const editando = ref(false);
 const productoEditando = ref<Producto | null>(null);
@@ -26,14 +28,15 @@ const handleEditar = (producto: Producto) => {
   };
 };
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
   if (editando.value && productoEditando.value) {
-    actualizarProducto(productoEditando.value.id, formData.value);
-    resetForm();
+    await actualizarProducto(productoEditando.value.id, formData.value);
   } else {
-    crearProducto(formData.value);
-    resetForm();
+    await crearProducto(formData.value);
   }
+  resetForm();
+  alertasStore.limpiarVistos();
+  await alertasStore.obtenerAlertas();
 };
 
 const resetForm = () => {

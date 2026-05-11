@@ -1,22 +1,17 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import { useAuthStore } from '../stores/authStore'
 
 const routes: RouteRecordRaw[] = [
-  {
-    path: '/',
-    redirect: '/productos',
-  },
   {
     path: '/login',
     name: 'login',
     component: () => import('../views/LoginView.vue'),
-    meta: { requiresAuth: false }
+    meta: { public: true }
   },
   {
     path: '/register',
     name: 'register',
     component: () => import('../views/RegisterView.vue'),
-    meta: { requiresAuth: false }
+    meta: { public: true }
   },
   {
     path: '/productos',
@@ -33,7 +28,10 @@ const routes: RouteRecordRaw[] = [
     path: '/profile',
     name: 'profile',
     component: () => import('../views/ProfileView.vue'),
-    meta: { requiresAuth: true }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/login'
   },
 ]
 
@@ -42,18 +40,13 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach(async (to, from, next) => {
-  const authStore = useAuthStore()
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('token')
+  const isPublic = to.meta.public
 
-  if (!authStore.isAuthenticated && authStore.token) {
-    await authStore.restoreSession()
-  }
-
-  const requiresAuth = to.meta.requiresAuth === true
-
-  if (requiresAuth && !authStore.isAuthenticated) {
+  if (!isPublic && !token) {
     next('/login')
-  } else if (!requiresAuth && authStore.isAuthenticated && (to.path === '/login' || to.path === '/register')) {
+  } else if ((to.path === '/login' || to.path === '/register') && token) {
     next('/productos')
   } else {
     next()

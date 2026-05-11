@@ -4,6 +4,11 @@ import { useAuthStore } from './stores/authStore'
 import './styles/global.css'
 
 const authStore = useAuthStore()
+
+function handleLogout() {
+  authStore.logout()
+  window.location.href = '/login'
+}
 </script>
 
 <template>
@@ -12,12 +17,8 @@ const authStore = useAuthStore()
       <h1>Gestión de Precios</h1>
       <nav class="nav">
         <RouterLink to="/productos">Productos</RouterLink>
-        <template v-if="authStore.isAuthenticated">
-          <RouterLink to="/profile">Perfil</RouterLink>
-        </template>
-        <template v-else>
-          <RouterLink to="/login">Login</RouterLink>
-        </template>
+        <RouterLink to="/profile">Perfil</RouterLink>
+        <a href="#" @click.prevent="handleLogout">Logout</a>
       </nav>
     </header>
     <main class="main-content">
@@ -56,6 +57,7 @@ const authStore = useAuthStore()
   text-decoration: none;
   padding: 0.5rem 1rem;
   border-radius: 4px;
+  cursor: pointer;
 }
 
 .nav a:hover {
